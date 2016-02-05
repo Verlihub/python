@@ -1,40 +1,54 @@
-# Verlihub Blacklist 1.1.8
+# Verlihub Blacklist 1.2.0.0
 # Written by RoLex, 2010-2016
 # Special thanks to Frog
 
 # Changelog:
-
-# 0.0.1 - Initial release
-# 1.0.0 - Added "find_maxres" configuration to limit number of results on find action
-# 1.0.0 - Added country codes of addresses in waiting feed list
-# 1.1.0 - Added "time_down" configuration to specify timeout of download operation in seconds
-# 1.1.1 - Added "listoff" command to disable or enable lists
-# 1.1.2 - Added another read failure check
-# 1.1.3 - Fixed display of item configuration old value when changing from zero
-# 1.1.3 - Fixed default exception file creation in wrong directory
-# 1.1.3 - Added translation ability with list command "lang" and update command "trans"
-# 1.1.4 - Added compression file format "zip"
-# 1.1.4 - Added data file format "emule"
-# 1.1.5 - Added "listget" command to force list load
-# 1.1.6 - Added exception notifications to waiting feed list aswell
-# 1.1.7 - Fixed OnTimer callback
-# 1.1.8 - Added referer and user agent headers for URL requests
-# 1.1.8 - Added different method of validating numbers
-# 1.1.8 - Added different method of getting hub bot nicks
-# 1.1.8 - Added public proxy lookup based on number of Google search results
-# 1.1.8 - Added "listre" command to reload all blacklist lists
-# 1.1.8 - Added "del" command to delete single blacklisted item in real time
-# 1.1.8 - Added "code_block" configuration for space separated list of blocked country codes
-# 1.1.8 - Added "code_except" configuration for space separated list of excepted country codes
-# 1.1.8 - Added short configuration explanations
-# 1.1.8 - Added custom blacklist to manage with "my*" commands
-# 1.1.8 - Added exception list to database instead of text file
-# 1.1.8 - Fixed missing global variable declarations
+# -------
+# 0.0.1.0 - Initial release
+# -------
+# 1.0.0.0 - Added "find_maxres" configuration to limit number of results on find action
+# 1.0.0.0 - Added country codes of addresses in waiting feed list
+# -------
+# 1.1.0.0 - Added "time_down" configuration to specify timeout of download operation in seconds
+# -------
+# 1.1.1.0 - Added "listoff" command to disable or enable lists
+# -------
+# 1.1.2.0 - Added another read failure check
+# -------
+# 1.1.3.0 - Fixed display of item configuration old value when changing from zero
+# 1.1.3.0 - Fixed default exception file creation in wrong directory
+# 1.1.3.0 - Added translation ability with list command "lang" and update command "trans"
+# -------
+# 1.1.4.0 - Added compression file format "zip"
+# 1.1.4.0 - Added data file format "emule"
+# -------
+# 1.1.5.0 - Added "listget" command to force list load
+# -------
+# 1.1.6.0 - Added exception notifications to waiting feed list aswell
+# -------
+# 1.1.7.0 - Fixed OnTimer callback
+# -------
+# 1.1.8.0 - Added referer and user agent headers for URL requests
+# 1.1.8.0 - Added different method of validating numbers
+# 1.1.8.0 - Added different method of getting hub bot nicks
+# 1.1.8.0 - Added public proxy lookup based on number of Google search results
+# 1.1.8.0 - Added "listre" command to reload all blacklist lists
+# 1.1.8.0 - Added "del" command to delete single blacklisted item in real time
+# 1.1.8.0 - Added "code_block" configuration for space separated list of blocked country codes
+# 1.1.8.0 - Added "code_except" configuration for space separated list of excepted country codes
+# 1.1.8.0 - Added short configuration explanations
+# 1.1.8.0 - Added custom blacklist to manage with "my*" commands
+# 1.1.8.0 - Added exception list to database instead of text file
+# 1.1.8.0 - Fixed missing global variable declarations
+# -------
+# 1.2.0.0 - Added bypass of checking IP addresses with country codes L1 and P1
+# 1.2.0.0 - Added four digit versioning
+# -------
 
 import vh, re, urllib2, urlparse, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, operator, random, json, ConfigParser
 
 bl_defs = {
-	"version": "1.1.8", # todo: update on release
+	"version": "1.2.0.0", # todo: update on release
 	"curlver": ["curl", "-V"],
 	"curlreq": "curl -G -L --max-redirs %s --retry %s --connect-timeout %s -m %s --interface %s -A \"%s\" -e \"%s\" -s -o \"%s\" \"%s\" &",
 	"google": "http://ajax.googleapis.com/ajax/services/search/web?v=1.0&userip=%s&rsz=8&q=proxy%%20OR%%20socks%%20%%22%s%%3a1..65535%%22",
@@ -874,27 +888,27 @@ def bl_notify (data):
 def OnNewConn (addr):
 	global bl_lang, bl_conf, bl_stat, bl_item, bl_myli
 	bl_stat ["connect"] += 1
-	code = None
+	code = vh.GetIPCC (addr)
 
-	if len (bl_conf ["code_block"][0]):
-		code = vh.GetIPCC (addr)
+	if len (bl_conf ["code_block"][0]) and len (code) and str ().join ([" ", code, " "]) in str ().join ([" ", bl_conf ["code_block"][0], " "]):
+		if bl_waitfeed (addr):
+			bl_notify (bl_lang [19] % (addr, code, bl_lang [149]))
 
-		if len (code) and str ().join ([" ", code, " "]) in str ().join ([" ", bl_conf ["code_block"][0], " "]):
-			if bl_waitfeed (addr):
-				bl_notify (bl_lang [19] % (addr, code, bl_lang [149]))
+		bl_stat ["block"] += 1
+		return 0
 
-			bl_stat ["block"] += 1
-			return 0
+	if code == "L1" or code == "P1":
+		return 1
 
 	intaddr = bl_addrtoint (addr)
 
 	for item in bl_item [intaddr >> 24]:
 		if intaddr >= item [0] and intaddr <= item [1]:
-			return bl_excheck (addr, intaddr, code or vh.GetIPCC (addr), item [2])
+			return bl_excheck (addr, intaddr, code, item [2])
 
 	for item in bl_myli:
 		if intaddr >= item [0] and intaddr <= item [1]:
-			return bl_excheck (addr, intaddr, code or vh.GetIPCC (addr), item [2])
+			return bl_excheck (addr, intaddr, code, item [2])
 
 	return 1
 
@@ -913,6 +927,11 @@ def OnUserLogin (nick):
 	if not len (addr):
 		return 1
 
+	code = vh.GetUserCC (nick)
+
+	if code == "L1" or code == "P1":
+		return 1
+
 	addrpos, size = (bl_addrtoint (addr) >> 24), 0
 
 	for pos in range (len (bl_prox)):
@@ -923,7 +942,7 @@ def OnUserLogin (nick):
 						bl_prox [pos][id][1].append (nick)
 				elif item [2] == 2:
 					if bl_waitfeed (addr):
-						bl_notify (bl_lang [19] % (addr, vh.GetIPCC (addr), bl_lang [126]))
+						bl_notify (bl_lang [19] % (addr, code, bl_lang [126]))
 
 					bl_stat ["block"] += 1
 					return 0
