@@ -1,7 +1,7 @@
 # coding: latin-1
 
 # PasteBot 0.0.2
-# © 2016 RoLex
+# Â© 2016 RoLex
 
 import vh, urllib, urllib2
 
@@ -32,7 +32,12 @@ def pb_paste (nick, data):
 	if not file:
 		return None
 
-	url = file.geturl ()
+	try:
+		url = file.geturl ()
+	except:
+		pass
+
+	file.close ()
 
 	if not url:
 		return None
