@@ -1,6 +1,8 @@
-# Verlihub Blacklist 1.2.0.0
-# Written by RoLex, 2010-2016
-# Special thanks to Frog
+# coding: latin-1
+
+# Blacklist 1.2.0.0
+# © 2010-2016 RoLex
+# Thanks to Frog
 
 # Changelog:
 # -------
@@ -309,7 +311,7 @@ def bl_main ():
 			"`loaddr` int(10) unsigned not null,"\
 			"`hiaddr` int(10) unsigned not null,"\
 			"`title` varchar(255) collate utf8_unicode_ci null default null,"\
-			"unique `addr_index` (`loaddr`, `hiaddr`)"
+			"unique `addr_index` (`loaddr`, `hiaddr`)"\
 		") engine = myisam default character set utf8 collate utf8_unicode_ci"
 	)
 
@@ -318,7 +320,7 @@ def bl_main ():
 			"`loaddr` int(10) unsigned not null,"\
 			"`hiaddr` int(10) unsigned not null,"\
 			"`title` varchar(255) collate utf8_unicode_ci null default null,"\
-			"unique `addr_index` (`loaddr`, `hiaddr`)"
+			"unique `addr_index` (`loaddr`, `hiaddr`)"\
 		") engine = myisam default character set utf8 collate utf8_unicode_ci"
 	)
 
