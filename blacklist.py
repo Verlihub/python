@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.0.0
+# Blacklist 1.2.0.1
 # © 2010-2016 RoLex
 # Thanks to Frog
 
@@ -43,21 +43,27 @@
 # 1.1.8.0 - Added exception list to database instead of text file
 # 1.1.8.0 - Fixed missing global variable declarations
 # -------
-# 1.2.0.0 - Added bypass of checking IP addresses with country codes L1 and P1
-# 1.2.0.0 - Added four digit versioning
+# 1.2.0.0 - Added bypass of public proxy lookup for local and private IP addresses
+# 1.2.0.0 - Added four digit version numbering
+# -------
+# 1.2.0.1 - Added "listact" command to set list block action
+# 1.2.0.1 - Added "action_proxy" configuration to set public proxy detection block action
+# 1.2.0.1 - Added "action_mylist" configuration to set my list item detection block action
 # -------
 
 import vh, re, urllib2, urlparse, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, operator, random, json, ConfigParser
 
 bl_defs = {
-	"version": "1.2.0.0", # todo: update on release
+	"version": "1.2.0.1", # todo: dont forget to update
 	"curlver": ["curl", "-V"],
 	"curlreq": "curl -G -L --max-redirs %s --retry %s --connect-timeout %s -m %s --interface %s -A \"%s\" -e \"%s\" -s -o \"%s\" \"%s\" &",
 	"google": "http://ajax.googleapis.com/ajax/services/search/web?v=1.0&userip=%s&rsz=8&q=proxy%%20OR%%20socks%%20%%22%s%%3a1..65535%%22",
 	"userip": "http://www.te-home.net/?do=tools&action=whatismyip",
 	"referer": ["https://github.com/verlihub/python/", []],
 	"useragent": ["Blacklist/%s", None],
-	"datadir": os.path.join (vh.basedir, "blackdata")
+	"datadir": os.path.join (vh.basedir, "blackdata"),
+	"timersec": 60,
+	"delwait": 60
 }
 
 bl_lang = {
@@ -232,7 +238,19 @@ bl_lang = {
 	168: "Disable proxy lookup failure notifications",
 	169: "Level of proxy lookup debug information",
 	170: "User agent: %s",
-	171: "New referer: %s"
+	171: "New referer: %s",
+	172: "Set list block action",
+	173: "Item now set to block",
+	174: "Item now set to notify",
+	175: "Action: %s",
+	176: "Block",
+	177: "Notify",
+	178: "Blocking blacklisted login from %s with IP %s.%s: %s",
+	179: "Notifying blacklisted connection from %s.%s: %s",
+	180: "Notifying blacklisted login from %s with IP %s.%s: %s",
+	181: "Block action on public proxy detections",
+	182: "Block action on my list item detections",
+	183: "Notified connections: %s"
 }
 
 bl_conf = {
@@ -254,22 +272,25 @@ bl_conf = {
 	"prox_queue": [100, "int", 1, 10000, 165],
 	"prox_maxreq": [1, "int", 1, 100, 166],
 	"prox_nofail": [0, "int", 0, 1, 168],
-	"prox_debug": [0, "int", 0, 2, 169]
+	"prox_debug": [0, "int", 0, 2, 169],
+	"action_proxy": [1, "int", 0, 1, 181],
+	"action_mylist": [1, "int", 0, 1, 182]
 }
 
 bl_stat = {
 	"connect": 0l,
 	"block": 0l,
+	"notify": 0l,
 	"except": 0l,
 	"update": time.time (),
 	"proxy": time.time ()
 }
 
 bl_list = [
-	# ["http://list.iblocklist.com/?list=ijfqtofzixtwayqovmxn&fileformat=p2p&archiveformat=gz", "gzip-p2p", "Primary threat", 0, 0, 0],
-	# ["http://list.iblocklist.com/?list=xoebmbyexwuiogmbyprb&fileformat=p2p&archiveformat=gz", "gzip-p2p", "Proxy", 0, 0, 0],
-	# ["http://ledo.feardc.net/mirror/torexit.list", "single", "Tor exit", 60, 0, 0],
-	# ["http://ledo.feardc.net/mirror/torserver.list", "single", "Tor server", 60, 0, 0]
+	# ["http://list.iblocklist.com/?list=ijfqtofzixtwayqovmxn&fileformat=p2p&archiveformat=gz", "gzip-p2p", "Primary threat", 0, 0, 1, 0],
+	# ["http://list.iblocklist.com/?list=xoebmbyexwuiogmbyprb&fileformat=p2p&archiveformat=gz", "gzip-p2p", "Proxy", 0, 0, 1, 0],
+	# ["http://ledo.feardc.net/mirror/torexit.list", "single", "Tor exit", 60, 0, 1, 0],
+	# ["http://ledo.feardc.net/mirror/torserver.list", "single", "Tor server", 60, 0, 1, 0]
 ]
 
 bl_item = []
@@ -302,7 +323,8 @@ def bl_main ():
 			"`type` varchar(25) collate utf8_unicode_ci not null,"\
 			"`title` varchar(255) collate utf8_unicode_ci not null,"\
 			"`update` smallint(4) unsigned not null default 0,"\
-			"`off` tinyint(1) unsigned not null default 0"\
+			"`off` tinyint(1) unsigned not null default 0,"\
+			"`action` tinyint(1) unsigned not null default 1"\
 		") engine = myisam default character set utf8 collate utf8_unicode_ci"
 	)
 
@@ -325,6 +347,7 @@ def bl_main ():
 	)
 
 	vh.SQL ("alter ignore table `py_bl_list` add column `off` tinyint(1) unsigned not null default 0 after `update`")
+	vh.SQL ("alter ignore table `py_bl_list` add column `action` tinyint(1) unsigned not null default 1 after `off`")
 
 	for id, item in bl_lang.iteritems ():
 		vh.SQL ("insert ignore into `py_bl_lang` (`id`, `value`) values (%s, '%s')" % (str (id), bl_repsql (item)))
@@ -351,7 +374,7 @@ def bl_main ():
 
 	if sql and rows:
 		for item in rows:
-			bl_list.append ([item [0], item [1], item [2], int (item [3]), int (item [4]), 0])
+			bl_list.append ([item [0], item [1], item [2], int (item [3]), int (item [4]), int (item [5]), 0])
 
 	out = (bl_lang [0] + ":\r\n\r\n") % bl_defs ["version"]
 	out += bl_reload ()
@@ -397,7 +420,7 @@ def bl_main ():
 
 	bl_notify (out)
 
-def bl_import (list, type, title, update = False): # gzip-p2p, gzip-emule, gzip-range, gzip-single, zip-p2p, zip-emule, zip-range, zip-single, p2p, emule, range, single
+def bl_import (list, type, title, action, update = False): # gzip-p2p, gzip-emule, gzip-range, gzip-single, zip-p2p, zip-emule, zip-range, zip-single, p2p, emule, range, single
 	global bl_lang, bl_conf, bl_item
 	file = None
 
@@ -494,7 +517,7 @@ def bl_import (list, type, title, update = False): # gzip-p2p, gzip-emule, gzip-
 				hiaddr = loaddr
 
 			if name and loaddr and hiaddr and bl_validaddr (loaddr) and bl_validaddr (hiaddr):
-				temp.append ([bl_addrtoint (loaddr), bl_addrtoint (hiaddr), name.replace ("\\'", "'").replace ("\\\"", "\"").replace ("\\&", "&").replace ("\\\\", "\\")])
+				temp.append ([bl_addrtoint (loaddr), bl_addrtoint (hiaddr), name.replace ("\\'", "'").replace ("\\\"", "\"").replace ("\\&", "&").replace ("\\\\", "\\"), action])
 
 	file.close ()
 
@@ -513,10 +536,10 @@ def bl_reload ():
 
 	for id, item in enumerate (bl_list):
 		if not item [4]:
-			out += " [*] %s: %s\r\n" % (item [2], bl_import (item [0], item [1], item [2]))
+			out += " [*] %s: %s\r\n" % (item [2], bl_import (item [0], item [1], item [2], item [5]))
 
 			if item [3]:
-				bl_list [id][5] = time.time ()
+				bl_list [id][6] = time.time ()
 
 	return out
 
@@ -899,27 +922,33 @@ def OnNewConn (addr):
 		bl_stat ["block"] += 1
 		return 0
 
-	if code == "L1" or code == "P1":
-		return 1
+	#if code == "L1" or code == "P1":
+		#return 1
 
 	intaddr = bl_addrtoint (addr)
 
 	for item in bl_item [intaddr >> 24]:
 		if intaddr >= item [0] and intaddr <= item [1]:
+			if not item [3]:
+				bl_notify (bl_lang [179] % (addr, code, item [2])) # todo: if bl_waitfeed (addr):
+				bl_stat ["notify"] += 1
+				return 1
+
 			return bl_excheck (addr, intaddr, code, item [2])
 
 	for item in bl_myli:
 		if intaddr >= item [0] and intaddr <= item [1]:
+			if not bl_conf ["action_mylist"][0]:
+				bl_notify (bl_lang [179] % (addr, code, item [2])) # todo: if bl_waitfeed (addr):
+				bl_stat ["notify"] += 1
+				return 1
+
 			return bl_excheck (addr, intaddr, code, item [2])
 
 	return 1
 
 def OnUserLogin (nick):
-	global bl_lang, bl_conf, bl_stat, bl_prox
-	now = time.time ()
-
-	if not bl_conf ["prox_lookup"][0] or now - vh.starttime < bl_conf ["prox_start"][0] * 60:
-		return 1
+	global bl_lang, bl_conf, bl_stat, bl_item, bl_prox, bl_myli
 
 	if vh.GetUserClass (nick) >= bl_conf ["class_skip"][0]:
 		return 1
@@ -930,11 +959,34 @@ def OnUserLogin (nick):
 		return 1
 
 	code = vh.GetUserCC (nick)
+	intaddr = bl_addrtoint (addr)
+	addrpos = intaddr >> 24
+
+	for item in bl_item [addrpos]:
+		if intaddr >= item [0] and intaddr <= item [1]:
+			if not item [3]:
+				bl_notify (bl_lang [180] % (nick, addr, code, item [2])) # todo: if bl_waitfeed (addr):
+				return 1
+
+			break
+
+	for item in bl_myli:
+		if intaddr >= item [0] and intaddr <= item [1]:
+			if not bl_conf ["action_mylist"][0]:
+				bl_notify (bl_lang [180] % (nick, addr, code, item [2])) # todo: if bl_waitfeed (addr):
+				return 1
+
+			break
 
 	if code == "L1" or code == "P1":
 		return 1
 
-	addrpos, size = (bl_addrtoint (addr) >> 24), 0
+	now = time.time ()
+
+	if not bl_conf ["prox_lookup"][0] or now - vh.starttime < bl_conf ["prox_start"][0] * 60:
+		return 1
+
+	size = 0
 
 	for pos in range (len (bl_prox)):
 		for id, item in enumerate (bl_prox [pos]):
@@ -944,7 +996,7 @@ def OnUserLogin (nick):
 						bl_prox [pos][id][1].append (nick)
 				elif item [2] == 2:
 					if bl_waitfeed (addr):
-						bl_notify (bl_lang [19] % (addr, code, bl_lang [126]))
+						bl_notify (bl_lang [178] % (nick, addr, code, bl_lang [126]))
 
 					bl_stat ["block"] += 1
 					return 0
@@ -993,6 +1045,7 @@ def OnOperatorCommand (user, data):
 			out += ("\r\n [*] " + bl_lang [147]) % str (len (bl_myli))
 			out += ("\r\n [*] " + bl_lang [25]) % str (len (bl_exli))
 			out += ("\r\n [*] " + bl_lang [26]) % str (bl_stat ["block"])
+			out += ("\r\n [*] " + bl_lang [183]) % str (bl_stat ["notify"])
 			out += ("\r\n [*] " + bl_lang [27]) % str (bl_stat ["except"])
 			out += ("\r\n [*] " + bl_lang [28]) % str (bl_stat ["connect"])
 			out += ("\r\n [*] " + bl_lang [129] + ": %s") % (bl_lang [138] % (str (wcurl), str (acurl)))
@@ -1048,7 +1101,7 @@ def OnOperatorCommand (user, data):
 
 				for item in bl_item [intaddr >> 24]:
 					if intaddr >= item [0] and intaddr <= item [1]:
-						out += " %s - %s : %s\r\n" % (bl_inttoaddr (item [0]), bl_inttoaddr (item [1]), item [2])
+						out += " %s - %s : %s [%s]\r\n" % (bl_inttoaddr (item [0]), bl_inttoaddr (item [1]), item [2], bl_lang [176] if item [3] else bl_lang [177])
 						size += 1
 
 						if size >= bl_conf ["find_maxres"][0]:
@@ -1064,7 +1117,7 @@ def OnOperatorCommand (user, data):
 				for pos in range (len (bl_item)):
 					for item in bl_item [pos]:
 						if lowdata in item [2].lower ():
-							out += " %s - %s : %s\r\n" % (bl_inttoaddr (item [0]), bl_inttoaddr (item [1]), item [2])
+							out += " %s - %s : %s [%s]\r\n" % (bl_inttoaddr (item [0]), bl_inttoaddr (item [1]), item [2], bl_lang [176] if item [3] else bl_lang [177])
 							size += 1
 
 							if size >= bl_conf ["find_maxres"][0]:
@@ -1116,7 +1169,8 @@ def OnOperatorCommand (user, data):
 						out = bl_lang [52] + ":\r\n"
 						out += ("\r\n [*] " + bl_lang [39]) % item [2]
 						out += ("\r\n [*] " + bl_lang [58]) % pars [0][0]
-						out += ("\r\n [*] " + bl_lang [59] + "\r\n") % (pars [0][1] or pars [0][0])
+						out += ("\r\n [*] " + bl_lang [59]) % (pars [0][1] or pars [0][0])
+						out += ("\r\n [*] " + bl_lang [175] + "\r\n") % (bl_lang [176] if item [3] else bl_lang [177])
 						bl_reply (user, out)
 						return 0
 
@@ -1163,11 +1217,12 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_lang [39]) % item [2]
 
 					if not item [4]:
-						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [5] + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [5] + (item [3] * 60)))))
+						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [6] + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [6] + (item [3] * 60)))))
 					else:
 						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else bl_lang [42] % item [3] if item [3] == 1 else bl_lang [43] % item [3])
 
-					out += ("\r\n [*] " + bl_lang [44] + "\r\n") % (bl_lang [45] if not item [4] else bl_lang [46])
+					out += ("\r\n [*] " + bl_lang [44]) % (bl_lang [45] if not item [4] else bl_lang [46])
+					out += ("\r\n [*] " + bl_lang [175] + "\r\n") % (bl_lang [176] if item [5] else bl_lang [177])
 
 			bl_reply (user, out)
 			return 0
@@ -1216,16 +1271,18 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_lang [39]) % item [2]
 
 					if not item [4]:
-						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [5] + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [5] + (item [3] * 60)))))
+						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [6] + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [6] + (item [3] * 60)))))
 					else:
 						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else bl_lang [42] % item [3] if item [3] == 1 else bl_lang [43] % item [3])
 
-					out += ("\r\n [*] " + bl_lang [44] + "\r\n") % (bl_lang [45] if not item [4] else bl_lang [46])
+					out += ("\r\n [*] " + bl_lang [44]) % (bl_lang [45] if not item [4] else bl_lang [46])
+					out += ("\r\n [*] " + bl_lang [175] + "\r\n") % (bl_lang [176] if item [6] else bl_lang [177])
 					bl_reply (user, out)
 					return 0
 
-			bl_list.append ([pars [0][0], pars [0][1], pars [0][2], update, 0, time.time () if update else 0])
+			bl_list.append ([pars [0][0], pars [0][1], pars [0][2], update, 0, 1, time.time () if update else 0])
 			vh.SQL ("insert into `py_bl_list` (`list`, `type`, `title`, `update`) values ('%s', '%s', '%s', %s)" % (bl_repsql (pars [0][0]), bl_repsql (pars [0][1]), bl_repsql (pars [0][2]), str (update)))
+
 			out = bl_lang [50] + ":\r\n"
 			out += ("\r\n [*] " + bl_lang [36]) % str (len (bl_list) - 1)
 			out += ("\r\n [*] " + bl_lang [37]) % pars [0][0]
@@ -1233,7 +1290,8 @@ def OnOperatorCommand (user, data):
 			out += ("\r\n [*] " + bl_lang [39]) % pars [0][2]
 			out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not update else (bl_lang [42] + " | %s") % (str (update), time.strftime ("%d/%m %H:%M", time.gmtime (time.time () + (update * 60)))) if update == 1 else (bl_lang [43] + " | %s") % (str (update), time.strftime ("%d/%m %H:%M", time.gmtime (time.time () + (update * 60)))))
 			out += ("\r\n [*] " + bl_lang [44]) % bl_lang [45]
-			out += ("\r\n [*] " + bl_lang [51] + "\r\n") % bl_import (pars [0][0], pars [0][1], pars [0][2])
+			out += ("\r\n [*] " + bl_lang [175]) % bl_lang [176]
+			out += ("\r\n [*] " + bl_lang [51] + "\r\n") % bl_import (pars [0][0], pars [0][1], pars [0][2], 1)
 			bl_reply (user, out)
 			return 0
 
@@ -1247,13 +1305,15 @@ def OnOperatorCommand (user, data):
 			if id >= 0 and bl_list and len (bl_list) - 1 >= id:
 				item = bl_list.pop (id)
 				vh.SQL ("delete from `py_bl_list` where `list` = '%s'" % bl_repsql (item [0]))
+
 				out = bl_lang [52] + ":\r\n"
 				out += ("\r\n [*] " + bl_lang [36]) % str (id)
 				out += ("\r\n [*] " + bl_lang [37]) % item [0]
 				out += ("\r\n [*] " + bl_lang [38]) % item [1]
 				out += ("\r\n [*] " + bl_lang [39]) % item [2]
 				out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else ((bl_lang [42] % item [3]) if item [3] == 1 else (bl_lang [43] % item [3])))
-				out += ("\r\n [*] " + bl_lang [44] + "\r\n") % (bl_lang [45] if not item [4] else bl_lang [46])
+				out += ("\r\n [*] " + bl_lang [44]) % (bl_lang [45] if not item [4] else bl_lang [46])
+				out += ("\r\n [*] " + bl_lang [175] + "\r\n") % (bl_lang [176] if item [5] else bl_lang [177])
 				bl_reply (user, out)
 			else:
 				bl_reply (user, bl_lang [53] % str (id))
@@ -1271,22 +1331,24 @@ def OnOperatorCommand (user, data):
 				item = bl_list [id]
 
 				if not item [4]:
-					bl_list [id][4], bl_list [id][5] = 1, 0
+					bl_list [id][4], bl_list [id][6] = 1, 0
 					vh.SQL ("update `py_bl_list` set `off` = 1 where `list` = '%s'" % bl_repsql (item [0]))
+
 					out = bl_lang [54] + ":\r\n"
 					out += ("\r\n [*] " + bl_lang [36]) % str (id)
 					out += ("\r\n [*] " + bl_lang [37]) % item [0]
 					out += ("\r\n [*] " + bl_lang [38]) % item [1]
 					out += ("\r\n [*] " + bl_lang [39]) % item [2]
 					out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else ((bl_lang [42] % item [3]) if item [3] == 1 else (bl_lang [43] % item [3])))
-					out += ("\r\n [*] " + bl_lang [44] + "\r\n") % bl_lang [46]
+					out += ("\r\n [*] " + bl_lang [44]) % bl_lang [46]
+					out += ("\r\n [*] " + bl_lang [175] + "\r\n") % (bl_lang [176] if item [5] else bl_lang [177])
 					bl_reply (user, out)
 				else:
 					bl_list [id][4] = 0
 					vh.SQL ("update `py_bl_list` set `off` = 0 where `list` = '%s'" % bl_repsql (item [0]))
 
 					if item [3]:
-						bl_list [id][5] = time.time ()
+						bl_list [id][6] = time.time ()
 
 					out = bl_lang [55] + ":\r\n"
 					out += ("\r\n [*] " + bl_lang [36]) % str (id)
@@ -1295,7 +1357,59 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_lang [39]) % item [2]
 					out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (time.time () + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (time.time () + (item [3] * 60)))))
 					out += ("\r\n [*] " + bl_lang [44]) % bl_lang [45]
-					out += ("\r\n [*] " + bl_lang [51] + "\r\n") % bl_import (item [0], item [1], item [2])
+					out += ("\r\n [*] " + bl_lang [175]) % (bl_lang [176] if item [5] else bl_lang [177])
+					out += ("\r\n [*] " + bl_lang [51] + "\r\n") % bl_import (item [0], item [1], item [2], item [5])
+					bl_reply (user, out)
+			else:
+				bl_reply (user, bl_lang [53] % str (id))
+
+			return 0
+
+		if data [4:11] == "listact":
+			if data [12:].isdigit ():
+				id = int (data [12:])
+			else:
+				bl_reply (user, bl_lang [29] % ("listact <" + bl_lang [88] + ">"))
+				return 0
+
+			if id >= 0 and bl_list and len (bl_list) - 1 >= id:
+				item = bl_list [id]
+
+				if item [5]:
+					bl_list [id][5] = 0
+					vh.SQL ("update `py_bl_list` set `action` = 0 where `list` = '%s'" % bl_repsql (item [0]))
+
+					out = bl_lang [174] + ":\r\n"
+					out += ("\r\n [*] " + bl_lang [36]) % str (id)
+					out += ("\r\n [*] " + bl_lang [37]) % item [0]
+					out += ("\r\n [*] " + bl_lang [38]) % item [1]
+					out += ("\r\n [*] " + bl_lang [39]) % item [2]
+
+					if not item [4]:
+						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [6] + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [6] + (item [3] * 60)))))
+					else:
+						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else bl_lang [42] % item [3] if item [3] == 1 else bl_lang [43] % item [3])
+
+					out += ("\r\n [*] " + bl_lang [44]) % (bl_lang [45] if not item [4] else bl_lang [46])
+					out += ("\r\n [*] " + bl_lang [175] + "\r\n") % bl_lang [177]
+					bl_reply (user, out)
+				else:
+					bl_list [id][5] = 1
+					vh.SQL ("update `py_bl_list` set `action` = 1 where `list` = '%s'" % bl_repsql (item [0]))
+
+					out = bl_lang [173] + ":\r\n"
+					out += ("\r\n [*] " + bl_lang [36]) % str (id)
+					out += ("\r\n [*] " + bl_lang [37]) % item [0]
+					out += ("\r\n [*] " + bl_lang [38]) % item [1]
+					out += ("\r\n [*] " + bl_lang [39]) % item [2]
+
+					if not item [4]:
+						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [6] + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [6] + (item [3] * 60)))))
+					else:
+						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else bl_lang [42] % item [3] if item [3] == 1 else bl_lang [43] % item [3])
+
+					out += ("\r\n [*] " + bl_lang [44]) % (bl_lang [45] if not item [4] else bl_lang [46])
+					out += ("\r\n [*] " + bl_lang [175] + "\r\n") % bl_lang [176]
 					bl_reply (user, out)
 			else:
 				bl_reply (user, bl_lang [53] % str (id))
@@ -1314,7 +1428,7 @@ def OnOperatorCommand (user, data):
 
 				if not item [4]:
 					if item [3]:
-						bl_list [id][5] = time.time ()
+						bl_list [id][6] = time.time ()
 
 					out = bl_lang [104] + ":\r\n"
 					out += ("\r\n [*] " + bl_lang [36]) % str (id)
@@ -1323,7 +1437,8 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_lang [39]) % item [2]
 					out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (time.time () + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (time.time () + (item [3] * 60)))))
 					out += ("\r\n [*] " + bl_lang [44]) % bl_lang [45]
-					out += ("\r\n [*] " + bl_lang [51] + "\r\n") % bl_import (item [0], item [1], item [2])
+					out += ("\r\n [*] " + bl_lang [175]) % (bl_lang [176] if item [5] else bl_lang [177])
+					out += ("\r\n [*] " + bl_lang [51] + "\r\n") % bl_import (item [0], item [1], item [2], item [5])
 					bl_reply (user, out)
 				else:
 					bl_reply (user, bl_lang [103] % str (id))
@@ -1342,7 +1457,8 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_lang [36]) % str (id)
 					out += ("\r\n [*] " + bl_lang [39]) % item [2]
 					out += ("\r\n [*] " + bl_lang [58]) % bl_inttoaddr (item [0])
-					out += ("\r\n [*] " + bl_lang [59] + "\r\n") % bl_inttoaddr (item [1])
+					out += ("\r\n [*] " + bl_lang [59]) % bl_inttoaddr (item [1])
+					out += ("\r\n [*] " + bl_lang [175] + "\r\n") % (bl_lang [176] if bl_conf ["action_mylist"][0] else bl_lang [177])
 
 			bl_reply (user, out)
 			return 0
@@ -1368,7 +1484,8 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_lang [36]) % str (id)
 					out += ("\r\n [*] " + bl_lang [39]) % item [2]
 					out += ("\r\n [*] " + bl_lang [58]) % pars [0][0]
-					out += ("\r\n [*] " + bl_lang [59] + "\r\n") % (pars [0][1] or pars [0][0])
+					out += ("\r\n [*] " + bl_lang [59]) % (pars [0][1] or pars [0][0])
+					out += ("\r\n [*] " + bl_lang [175] + "\r\n") % (bl_lang [176] if bl_conf ["action_mylist"][0] else bl_lang [177])
 					bl_reply (user, out)
 					return 0
 
@@ -1380,7 +1497,8 @@ def OnOperatorCommand (user, data):
 			out += ("\r\n [*] " + bl_lang [36]) % str (len (bl_myli) - 1)
 			out += ("\r\n [*] " + bl_lang [39]) % (pars [0][2] or bl_lang [142])
 			out += ("\r\n [*] " + bl_lang [58]) % pars [0][0]
-			out += ("\r\n [*] " + bl_lang [59] + "\r\n") % (pars [0][1] or pars [0][0])
+			out += ("\r\n [*] " + bl_lang [59]) % (pars [0][1] or pars [0][0])
+			out += ("\r\n [*] " + bl_lang [175] + "\r\n") % (bl_lang [176] if bl_conf ["action_mylist"][0] else bl_lang [177])
 			bl_reply (user, out)
 			return 0
 
@@ -1398,7 +1516,8 @@ def OnOperatorCommand (user, data):
 				out += ("\r\n [*] " + bl_lang [36]) % str (id)
 				out += ("\r\n [*] " + bl_lang [39]) % item [2]
 				out += ("\r\n [*] " + bl_lang [58]) % bl_inttoaddr (item [0])
-				out += ("\r\n [*] " + bl_lang [59] + "\r\n") % bl_inttoaddr (item [1])
+				out += ("\r\n [*] " + bl_lang [59]) % bl_inttoaddr (item [1])
+				out += ("\r\n [*] " + bl_lang [175] + "\r\n") % (bl_lang [176] if bl_conf ["action_mylist"][0] else bl_lang [177])
 				bl_reply (user, out)
 			else:
 				bl_reply (user, bl_lang [53] % str (id))
@@ -1473,7 +1592,7 @@ def OnOperatorCommand (user, data):
 						intaddr = bl_addrtoint (prox [0])
 
 						if intaddr >= item [0] and intaddr <= item [1]:
-							bl_item [intaddr >> 24].append ([intaddr, intaddr, bl_lang [126]]) # todo: also add to mysql table when we have one
+							bl_item [intaddr >> 24].append ([intaddr, intaddr, bl_lang [126], bl_conf ["action_proxy"][0]]) # todo: also add to mysql table when we have one
 							bl_prox [pos].pop (pid)
 							stop = True
 							break
@@ -1577,6 +1696,7 @@ def OnOperatorCommand (user, data):
 		out += " listall\t\t\t\t\t- " + bl_lang [76] + "\r\n"
 		out += " listadd <" + bl_lang [92] + "> <" + bl_lang [93] + "> <\"" + bl_lang [91] + "\"> [" + bl_lang [94] + "]\t- " + bl_lang [77] + "\r\n"
 		out += " listoff <" + bl_lang [88] + ">\t\t\t\t- " + bl_lang [78] + "\r\n"
+		out += " listact <" + bl_lang [88] + ">\t\t\t\t- " + bl_lang [172] + "\r\n"
 		out += " listget <" + bl_lang [88] + ">\t\t\t\t- " + bl_lang [102] + "\r\n"
 		out += " listdel <" + bl_lang [88] + ">\t\t\t\t- " + bl_lang [79] + "\r\n"
 		out += " listre\t\t\t\t\t- " + bl_lang [141] + "\r\n\r\n"
@@ -1604,13 +1724,13 @@ def OnTimer (msec):
 	global bl_defs, bl_lang, bl_conf, bl_stat, bl_list, bl_item, bl_prox, bl_feed
 	now = time.time ()
 
-	if now - bl_stat ["update"] >= 60:
+	if now - bl_stat ["update"] >= bl_defs ["timersec"]:
 		bl_stat ["update"], mins = now, (bl_conf ["time_feed"][0] * 60)
 		bl_feed = [item for item in bl_feed if now - item [1] < mins]
 
 		for id, item in enumerate (bl_list):
-			if not item [4] and item [3] and now - item [5] >= item [3] * 60:
-				bl_list [id][5], out = now, bl_import (item [0], item [1], item [2], True)
+			if not item [4] and item [3] and now - item [6] >= item [3] * 60:
+				bl_list [id][6], out = now, bl_import (item [0], item [1], item [2], item [5], True)
 
 				if bl_conf ["notify_update"][0]:
 					bl_notify ("%s: %s" % (item [2], out))
@@ -1671,18 +1791,20 @@ def OnTimer (msec):
 										intaddr = bl_addrtoint (item [0])
 										keep = True
 
-										if bl_excheck (item [0], intaddr, code, bl_lang [126], False):
-											for nick in item [1]:
-												bl_stat ["except"] += 1
-
+										if not bl_conf ["action_proxy"][0]:
+											bl_notify (bl_lang [180] % (item [1][0] if len (item [1]) == 1 else str (item [1]), item [0], code, bl_lang [126])) # todo: if bl_waitfeed (item [0]):
+											bl_stat ["notify"] += 1
+											bl_prox [pos][id][2] = 3
+										elif bl_excheck (item [0], intaddr, code, bl_lang [126], False):
+											bl_stat ["except"] += len (item [1])
 											bl_prox [pos][id][2] = 3
 										else:
 											for nick in item [1]:
 												vh.CloseConnection (nick)
-												bl_stat ["block"] += 1
 
+											bl_stat ["block"] += len (item [1])
 											bl_prox [pos][id][2] = 2
-											bl_item [intaddr >> 24].append ([intaddr, intaddr, bl_lang [126]]) # todo: also add to mysql table when we have one
+											bl_item [intaddr >> 24].append ([intaddr, intaddr, bl_lang [126], bl_conf ["action_proxy"][0]]) # todo: also add to mysql table when we have one
 									else:
 										if str (res [1]).isdigit ():
 											keep = True
@@ -1712,7 +1834,7 @@ def OnTimer (msec):
 						if isfile:
 							bl_remfile (name)
 				elif item [2] == 2:
-					if now - item [3] >= 60:
+					if now - item [3] >= bl_defs ["delwait"]:
 						dels.insert (0, [pos, id])
 				#elif item [2] == 3:
 					#pass
