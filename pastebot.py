@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# PasteBot 0.0.2
+# PasteBot 0.0.2.1
 # © 2016 RoLex
 
 import vh, urllib, urllib2
@@ -11,7 +11,7 @@ pb_defs = {
 	"syntax": "syntax",
 	"content": "content",
 	"text": "text",
-	"agent": "PasteBot/0.0.2",
+	"agent": "PasteBot/0.0.2.1",
 	"timeout": 5,
 	"command": "paste",
 	"shortcut": "p",
@@ -25,7 +25,7 @@ def pb_paste (nick, data):
 	global pb_defs
 
 	try:
-		file = urllib2.urlopen (urllib2.Request (pb_defs ["paste"], urllib.urlencode ({pb_defs ["poster"]: nick, pb_defs ["syntax"]: pb_defs ["text"], pb_defs ["content"]: data}), {"User-agent": pb_defs ["agent"]}), None, pb_defs ["timeout"])
+		file = urllib2.urlopen (urllib2.Request (pb_defs ["paste"], urllib.urlencode ({pb_defs ["poster"]: pb_unicode (nick), pb_defs ["syntax"]: pb_defs ["text"], pb_defs ["content"]: pb_unicode (pb_nmdc (data, True))}), {"User-agent": pb_defs ["agent"]}), None, pb_defs ["timeout"])
 	except:
 		return None
 
@@ -44,8 +44,26 @@ def pb_paste (nick, data):
 
 	return url
 
-def pb_nmdc (data):
-	return data.replace ("|", "&#124;").replace ("$", "&#36;")
+def pb_unicode (data, bad = "cp1252"):
+	enc = vh.GetConfig (vh.config_name, "hub_encoding", bad)
+
+	if enc and len (enc):
+		enc = enc.lower ()
+	else:
+		enc = bad
+
+	try:
+		conv = data.decode (enc, "ignore").encode ("utf-8", "ignore")
+	except:
+		conv = data
+
+	return conv
+
+def pb_nmdc (data, out = False):
+	if out:
+		return data.replace ("&#124;", "|").replace ("&#36;", "$")
+	else:
+		return data.replace ("|", "&#124;").replace ("$", "&#36;")
 
 def pb_notify (nick, data, oc):
 	if oc:
