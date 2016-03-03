@@ -370,7 +370,7 @@ def bl_main ():
 		for item in rows:
 			bl_setconf (item [0], item [1], False)
 
-	sql, rows = vh.SQL ("select * from `py_bl_list`", 100) # todo: dont forget about limit
+	sql, rows = vh.SQL ("select * from `py_bl_list` order by `action` desc", 100) # todo: dont forget about limit
 
 	if sql and rows:
 		for item in rows:
