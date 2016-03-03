@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.0.1
+# Blacklist 1.2.0.2
 # © 2010-2016 RoLex
 # Thanks to Frog
 
@@ -46,6 +46,7 @@
 # 1.2.0.0 - Added bypass of public proxy lookup for local and private IP addresses
 # 1.2.0.0 - Added four digit version numbering
 # -------
+# 1.2.0.2 - Fixed wrong UTC time use instead of local time
 # 1.2.0.1 - Added "listact" command to set list block action
 # 1.2.0.1 - Added "action_proxy" configuration to set public proxy detection block action
 # 1.2.0.1 - Added "action_mylist" configuration to set my list item detection block action
@@ -54,7 +55,7 @@
 import vh, re, urllib2, urlparse, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, operator, random, json, ConfigParser
 
 bl_defs = {
-	"version": "1.2.0.1", # todo: dont forget to update
+	"version": "1.2.0.2", # todo: dont forget to update
 	"curlver": ["curl", "-V"],
 	"curlreq": "curl -G -L --max-redirs %s --retry %s --connect-timeout %s -m %s --interface %s -A \"%s\" -e \"%s\" -s -o \"%s\" \"%s\" &",
 	"google": "http://ajax.googleapis.com/ajax/services/search/web?v=1.0&userip=%s&rsz=8&q=proxy%%20OR%%20socks%%20%%22%s%%3a1..65535%%22",
@@ -63,7 +64,8 @@ bl_defs = {
 	"useragent": ["Blacklist/%s", None],
 	"datadir": os.path.join (vh.basedir, "blackdata"),
 	"timersec": 60,
-	"delwait": 60
+	"delwait": 60,
+	"prevfeed": 15
 }
 
 bl_lang = {
@@ -370,7 +372,7 @@ def bl_main ():
 		for item in rows:
 			bl_setconf (item [0], item [1], False)
 
-	sql, rows = vh.SQL ("select * from `py_bl_list` order by `action` desc", 100) # todo: dont forget about limit
+	sql, rows = vh.SQL ("select * from `py_bl_list` order by `off` asc, `action` desc", 100) # todo: dont forget about limit
 
 	if sql and rows:
 		for item in rows:
@@ -743,13 +745,15 @@ def bl_excheck (addr, intaddr, code, name, stat = True):
 
 	return 0
 
-def bl_waitfeed (addr):
-	global bl_conf, bl_feed
+def bl_waitfeed (addr, prev = False):
+	global bl_defs, bl_conf, bl_feed
 	mins, now = (bl_conf ["time_feed"][0] * 60), time.time ()
 
 	for id, item in enumerate (bl_feed):
 		if addr == item [0]:
-			if now - item [1] >= mins:
+			dif = now - item [1]
+
+			if dif >= mins or (prev and dif <= bl_defs ["prevfeed"]):
 				bl_feed [id][1] = now
 				return 1
 
@@ -757,14 +761,6 @@ def bl_waitfeed (addr):
 
 	bl_feed.append ([addr, now])
 	return 1
-
-def bl_delfeed (addr):
-	global bl_feed
-
-	for id, item in enumerate (bl_feed):
-		if addr == item [0]:
-			bl_feed.pop (id)
-			break
 
 def bl_getconf (name):
 	global bl_conf
@@ -939,7 +935,6 @@ def OnNewConn (addr):
 		if intaddr >= item [0] and intaddr <= item [1]:
 			if not item [3]:
 				if bl_waitfeed (addr):
-					bl_delfeed (addr)
 					bl_notify (bl_lang [179] % (addr, code, item [2]))
 
 				bl_stat ["notify"] += 1
@@ -951,7 +946,6 @@ def OnNewConn (addr):
 		if intaddr >= item [0] and intaddr <= item [1]:
 			if not bl_conf ["action_mylist"][0]:
 				if bl_waitfeed (addr):
-					bl_delfeed (addr)
 					bl_notify (bl_lang [179] % (addr, code, item [2]))
 
 				bl_stat ["notify"] += 1
@@ -979,7 +973,7 @@ def OnUserLogin (nick):
 	for item in bl_item [addrpos]:
 		if intaddr >= item [0] and intaddr <= item [1]:
 			if not item [3]:
-				if bl_waitfeed (addr):
+				if bl_waitfeed (addr, True):
 					bl_notify (bl_lang [180] % (nick, addr, code, item [2]))
 
 				return 1
@@ -989,7 +983,7 @@ def OnUserLogin (nick):
 	for item in bl_myli:
 		if intaddr >= item [0] and intaddr <= item [1]:
 			if not bl_conf ["action_mylist"][0]:
-				if bl_waitfeed (addr):
+				if bl_waitfeed (addr, True):
 					bl_notify (bl_lang [180] % (nick, addr, code, item [2]))
 
 				return 1
@@ -1082,7 +1076,7 @@ def OnOperatorCommand (user, data):
 				for item in bl_prox [pos]:
 					if item [2] < 3:
 						size += 1
-						out += (" [*] " + bl_lang [71] + " | " + bl_lang [51] + " | " + bl_lang [130] + " | " + bl_lang [131] + "\r\n") % (item [0], vh.GetIPCC (item [0]), (bl_lang [134] if not item [2] else (bl_lang [135] if item [2] == 1 else bl_lang [139])), time.strftime ("%H:%M:%S", time.gmtime (item [3])), (bl_lang [95] if item [2] == 2 else ", ".join (item [1])))
+						out += (" [*] " + bl_lang [71] + " | " + bl_lang [51] + " | " + bl_lang [130] + " | " + bl_lang [131] + "\r\n") % (item [0], vh.GetIPCC (item [0]), (bl_lang [134] if not item [2] else (bl_lang [135] if item [2] == 1 else bl_lang [139])), time.strftime ("%H:%M:%S", time.localtime (item [3])), (bl_lang [95] if item [2] == 2 else ", ".join (item [1])))
 
 			if size:
 				out = bl_lang [129] + ":\r\n\r\n" + out
@@ -1100,7 +1094,7 @@ def OnOperatorCommand (user, data):
 				out, mins = (bl_lang [70] + ":\r\n\r\n"), (bl_conf ["time_feed"][0] * 60)
 
 				for item in bl_feed:
-					out += (" [*] " + bl_lang [71] + " | " + bl_lang [72] + "\r\n") % (item [0], vh.GetIPCC (item [0]), time.strftime ("%d/%m %H:%M", time.gmtime (item [1] + mins)))
+					out += (" [*] " + bl_lang [71] + " | " + bl_lang [72] + "\r\n") % (item [0], vh.GetIPCC (item [0]), time.strftime ("%d/%m %H:%M", time.localtime (item [1] + mins)))
 
 				out += ("\r\n " + bl_lang [133] + "\r\n") % str (len (bl_feed))
 
@@ -1235,7 +1229,7 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_lang [39]) % item [2]
 
 					if not item [4]:
-						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [6] + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [6] + (item [3] * 60)))))
+						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [6] + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [6] + (item [3] * 60)))))
 					else:
 						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else bl_lang [42] % item [3] if item [3] == 1 else bl_lang [43] % item [3])
 
@@ -1289,7 +1283,7 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_lang [39]) % item [2]
 
 					if not item [4]:
-						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [6] + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [6] + (item [3] * 60)))))
+						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [6] + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [6] + (item [3] * 60)))))
 					else:
 						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else bl_lang [42] % item [3] if item [3] == 1 else bl_lang [43] % item [3])
 
@@ -1306,7 +1300,7 @@ def OnOperatorCommand (user, data):
 			out += ("\r\n [*] " + bl_lang [37]) % pars [0][0]
 			out += ("\r\n [*] " + bl_lang [38]) % pars [0][1]
 			out += ("\r\n [*] " + bl_lang [39]) % pars [0][2]
-			out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not update else (bl_lang [42] + " | %s") % (str (update), time.strftime ("%d/%m %H:%M", time.gmtime (time.time () + (update * 60)))) if update == 1 else (bl_lang [43] + " | %s") % (str (update), time.strftime ("%d/%m %H:%M", time.gmtime (time.time () + (update * 60)))))
+			out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not update else (bl_lang [42] + " | %s") % (str (update), time.strftime ("%d/%m %H:%M", time.localtime (time.time () + (update * 60)))) if update == 1 else (bl_lang [43] + " | %s") % (str (update), time.strftime ("%d/%m %H:%M", time.localtime (time.time () + (update * 60)))))
 			out += ("\r\n [*] " + bl_lang [44]) % bl_lang [45]
 			out += ("\r\n [*] " + bl_lang [175]) % bl_lang [176]
 			out += ("\r\n [*] " + bl_lang [51] + "\r\n") % bl_import (pars [0][0], pars [0][1], pars [0][2], 1)
@@ -1373,7 +1367,7 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_lang [37]) % item [0]
 					out += ("\r\n [*] " + bl_lang [38]) % item [1]
 					out += ("\r\n [*] " + bl_lang [39]) % item [2]
-					out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (time.time () + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (time.time () + (item [3] * 60)))))
+					out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (time.time () + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (time.time () + (item [3] * 60)))))
 					out += ("\r\n [*] " + bl_lang [44]) % bl_lang [45]
 					out += ("\r\n [*] " + bl_lang [175]) % (bl_lang [176] if item [5] else bl_lang [177])
 					out += ("\r\n [*] " + bl_lang [51] + "\r\n") % bl_import (item [0], item [1], item [2], item [5])
@@ -1404,7 +1398,7 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_lang [39]) % item [2]
 
 					if not item [4]:
-						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [6] + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [6] + (item [3] * 60)))))
+						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [6] + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [6] + (item [3] * 60)))))
 					else:
 						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else bl_lang [42] % item [3] if item [3] == 1 else bl_lang [43] % item [3])
 
@@ -1422,7 +1416,7 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_lang [39]) % item [2]
 
 					if not item [4]:
-						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [6] + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (item [6] + (item [3] * 60)))))
+						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [6] + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [6] + (item [3] * 60)))))
 					else:
 						out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else bl_lang [42] % item [3] if item [3] == 1 else bl_lang [43] % item [3])
 
@@ -1453,7 +1447,7 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_lang [37]) % item [0]
 					out += ("\r\n [*] " + bl_lang [38]) % item [1]
 					out += ("\r\n [*] " + bl_lang [39]) % item [2]
-					out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (time.time () + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.gmtime (time.time () + (item [3] * 60)))))
+					out += ("\r\n [*] " + bl_lang [40]) % (bl_lang [41] if not item [3] else (bl_lang [42] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (time.time () + (item [3] * 60)))) if item [3] == 1 else (bl_lang [43] + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (time.time () + (item [3] * 60)))))
 					out += ("\r\n [*] " + bl_lang [44]) % bl_lang [45]
 					out += ("\r\n [*] " + bl_lang [175]) % (bl_lang [176] if item [5] else bl_lang [177])
 					out += ("\r\n [*] " + bl_lang [51] + "\r\n") % bl_import (item [0], item [1], item [2], item [5])
