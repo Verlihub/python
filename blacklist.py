@@ -758,6 +758,14 @@ def bl_waitfeed (addr):
 	bl_feed.append ([addr, now])
 	return 1
 
+def bl_delfeed (addr):
+	global bl_feed
+
+	for id, item in enumerate (bl_feed):
+		if addr == item [0]:
+			bl_feed.pop (id)
+			break
+
 def bl_getconf (name):
 	global bl_conf
 
@@ -930,7 +938,10 @@ def OnNewConn (addr):
 	for item in bl_item [intaddr >> 24]:
 		if intaddr >= item [0] and intaddr <= item [1]:
 			if not item [3]:
-				bl_notify (bl_lang [179] % (addr, code, item [2])) # todo: if bl_waitfeed (addr):
+				if bl_waitfeed (addr):
+					bl_delfeed (addr)
+					bl_notify (bl_lang [179] % (addr, code, item [2]))
+
 				bl_stat ["notify"] += 1
 				return 1
 
@@ -939,7 +950,10 @@ def OnNewConn (addr):
 	for item in bl_myli:
 		if intaddr >= item [0] and intaddr <= item [1]:
 			if not bl_conf ["action_mylist"][0]:
-				bl_notify (bl_lang [179] % (addr, code, item [2])) # todo: if bl_waitfeed (addr):
+				if bl_waitfeed (addr):
+					bl_delfeed (addr)
+					bl_notify (bl_lang [179] % (addr, code, item [2]))
+
 				bl_stat ["notify"] += 1
 				return 1
 
@@ -965,7 +979,9 @@ def OnUserLogin (nick):
 	for item in bl_item [addrpos]:
 		if intaddr >= item [0] and intaddr <= item [1]:
 			if not item [3]:
-				bl_notify (bl_lang [180] % (nick, addr, code, item [2])) # todo: if bl_waitfeed (addr):
+				if bl_waitfeed (addr):
+					bl_notify (bl_lang [180] % (nick, addr, code, item [2]))
+
 				return 1
 
 			break
@@ -973,7 +989,9 @@ def OnUserLogin (nick):
 	for item in bl_myli:
 		if intaddr >= item [0] and intaddr <= item [1]:
 			if not bl_conf ["action_mylist"][0]:
-				bl_notify (bl_lang [180] % (nick, addr, code, item [2])) # todo: if bl_waitfeed (addr):
+				if bl_waitfeed (addr):
+					bl_notify (bl_lang [180] % (nick, addr, code, item [2]))
+
 				return 1
 
 			break
@@ -1792,7 +1810,9 @@ def OnTimer (msec):
 										keep = True
 
 										if not bl_conf ["action_proxy"][0]:
-											bl_notify (bl_lang [180] % (item [1][0] if len (item [1]) == 1 else str (item [1]), item [0], code, bl_lang [126])) # todo: if bl_waitfeed (item [0]):
+											if bl_waitfeed (item [0]):
+												bl_notify (bl_lang [180] % (item [1][0] if len (item [1]) == 1 else str (item [1]), item [0], code, bl_lang [126]))
+
 											bl_stat ["notify"] += 1
 											bl_prox [pos][id][2] = 3
 										elif bl_excheck (item [0], intaddr, code, bl_lang [126], False):
