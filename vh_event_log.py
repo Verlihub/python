@@ -15,8 +15,8 @@ import sys
 
 vh.name_and_version("VH Event Logger", "1.1.1")
 
-# vh.name_and_version sets the name by whiich other scripts can identify this one, without relying on the filename.
-# If you'd like to check if logging is active from another script, you would write there something like this.
+# vh.name_and_version sets the name by which other scripts can identify this one without relying on the filename.
+# If you'd like to check if logging is active from another script, you could write something like this.
 # Put the following remotely_check_logging function in the *other* script.
 
 def remotely_check_logging():
@@ -33,7 +33,7 @@ def remotely_check_logging():
     return -1
 
 # But if you only want to turn logging on or off and don't care if you succeed, the task becomes much simpler.
-# You only have to use code like the following function in your script:
+# You only have to put code similar to the following function in *your* script:
 
 def remotely_switch_logging(turn_on):
     """Turn on logging (if it's available) when turn_on is True; otherwise turn it off."""
@@ -215,6 +215,6 @@ def OnNewBan(op, ip, nick, reason):
 #def OnTimer(msecs=None):
     # if log(): print "%-45s" % "OnTimer(%s)" % msecs; sys.stdout.flush()
 
-# Uncomment the next line if you want the script to inform admins and master when it is being loaded.
+# Uncomment the next line if you want the script to inform admins and masters when it is being loaded.
 #vh.classmc("Script vh_event_log.py is online. To start logging, write !vh_event_log 1, and to stop, !vh_event_log 0", 5, 10)
 
