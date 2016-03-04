@@ -1,9 +1,9 @@
 Python scripts for Verlihub
 ===========================
 
-To use scripts in this directory make sure you get the most recent Verlihub from <https://github.com/Verlihub/verlihub> and build it with the Python plugin — that should happen automatically when the necessary development header files are detected on your system (for example on Debian you have to install `python-dev`, preferably `python2.7-dev`, but not `python3-dev`). You will find more information about building Verlihub here: <https://github.com/Verlihub/verlihub/wiki>.
+To use scripts in this directory make sure you get the most recent Verlihub from <https://github.com/Verlihub/verlihub> and that it builds with the Python plugin — that should happen automatically when the necessary development header files are detected on your system (for example on Debian you have to install `python-dev` or preferably `python2.7-dev`; but do not install `python3-dev`). You will find more information about building Verlihub here: <https://github.com/Verlihub/verlihub/wiki>.
 
-Once you have a running hub, you can load the Python plugin with the `!onplug python` command. If that goes well, you can set the hub to automatically load the plugin on start-up using the `modplug python -a 1` command. Turning the plugin on will automatically load python scripts from the `./scripts` subdirectory of your hub instalation (where you keep the `dbconfig` file) in alphabetical (ASCII) order. Python scripts are recognized by their `.py` filename extension.
+Once you have a running hub, you can load the Python plugin with the `!onplug python` command. If that goes well, you can set the hub to automatically load the plugin on start-up using the `!modplug python -a 1` command. Turning the plugin on will automatically load python scripts from the `./scripts` subdirectory of your hub instalation (where you keep the `dbconfig` file) in alphabetical (ASCII) order. Python scripts are recognized by their `.py` filename extension.
 
 Here are the commands you can use:
 
@@ -24,7 +24,7 @@ Here are the commands you can use:
 Example scripts
 ---------------
 
-Several Python scripts have been gathered online at <https://github.com/Verlihub/python> to eplain how to write Python scripts for Verlihub and to show their capabilities.
+Several Python scripts have been gathered online at <https://github.com/Verlihub/python> to eplain how to write Python scripts for Verlihub and to show their capabilities. Let's see their brief descriptions.
 
 
 ### blacklist.py
@@ -61,13 +61,13 @@ Use this script only for testing and development. It prints all received hub eve
 
 
 
-More informations
------------------
+More information
+----------------
 
 To learn more about enhancing Verlihub with Python scripts, read the documentation about Verlihub's Python API:
 
- -  handling events: <https://github.com/Verlihub/verlihub/wiki/API-Python-Events>,
+ -  handling events — <https://github.com/Verlihub/verlihub/wiki/API-Python-Events>,
 
- -  using callbacks: <https://github.com/Verlihub/verlihub/wiki/API-Python-Methods>.
+ -  using callbacks — <https://github.com/Verlihub/verlihub/wiki/API-Python-Methods>.
 
 
