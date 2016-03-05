@@ -27,11 +27,6 @@ Example scripts
 Several Python scripts have been gathered online at <https://github.com/Verlihub/python> to eplain how to write Python scripts for Verlihub and to show their capabilities. Let's see their brief descriptions.
 
 
-### blacklist.py
-
-...
-
-
 ### mean.py
 
 A funny script providing you with the silly extra functionality YnHub offers. It allows you to "kennylize", "lunarize" and reverse the chat messages of certain users. Changes are stored by nick in the database, so they are still in effect after the user reconnects. For available commands write: `!help mean`.
@@ -43,10 +38,6 @@ A demonstrative script showing a powerful feature available in the Python plugin
 
 The command `!myinfo <flags>` specifies which part of myinfo should be modified. `<flags>` is a number created by adding the numbers of fields you want modified: 1=description, 2=tag, 4=speed, 8=email, 16=sharesize, so to turn everything on write: `!myinfo 31`, and to disable changes write: `!myinfo 0`.
 
-
-### pastebot.py
-
-...
 
 
 ### python1.py
@@ -69,5 +60,3 @@ To learn more about enhancing Verlihub with Python scripts, read the documentati
  -  handling events — <https://github.com/Verlihub/verlihub/wiki/API-Python-Events>,
 
  -  using callbacks — <https://github.com/Verlihub/verlihub/wiki/API-Python-Methods>.
-
-
