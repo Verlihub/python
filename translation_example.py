@@ -57,47 +57,47 @@ german_strings = {
 # Replace this with your script's unique table name:
 translation_db_table = "translation_example_py_strings"
 
-translated_strings = {}
-_ = {}
 
 # This would only prepare the English strings for use with _[text]:
-# update_translation_strings(english_strings, translated_strings, _)
+# _ = update_translation_strings(english_strings)
 
 # This loads the default strings from the database in whatever language is stored there:
-update_translation_strings(english_strings, translated_strings, _, translation_db_table)
+_ = update_translation_strings(english_strings, db_table=translation_db_table)
 
 # This will print in English or the language in the database if the table already existed:
-vh.classmc(_["Script %s is ready."] % my_name, 10, 10)
+vh.classmc(_("Script %s is ready.") % my_name, 10, 10)
 
 
 def OnOperatorCommand(nick, data):
+    global _   # has to be global, because we assign it here
+
     if data[1:].startswith("tr_example "):
         lang = data[1 + len("tr_example "):]
 
         if lang == "en":
-            # Load English from our local dictionary (copy it first, so it's mpt overwritten):
-            translated_strings = english_strings.copy()
-            update_translation_strings(english_strings, translated_strings, _, None, True)
-            vh.usermc(_["OK, English now!"], nick)
+            # Reset translations to default English:
+            _ = update_translation_strings(english_strings)
+            vh.usermc(_("OK, English now!"), nick)
 
         elif lang == "de":
-            # Load German from our local dictionary:
-            translated_strings = german_strings.copy()
-            update_translation_strings(english_strings, translated_strings, _, None, True)
-            vh.usermc(_["OK, English now!"], nick)  # This will show up in German!
+            # Load German from our local dictionary, but copy it first so it is not overwritten.
+            # (Missing or bad strings would be replaced by English versions, and extra strings would be removed.)
+            # If you don't care about german_strings being modified, you can leave out the ".copy()".
+            #
+            _ = update_translation_strings(english_strings, german_strings.copy(), use_translated=True)
+            vh.usermc(_("OK, English now!"), nick)  # This will show up in German!
 
         elif lang == "xx":
             # Load whatever language is used in the strings stored in the database:
-            translated_strings = german_strings.copy()
-            update_translation_strings(english_strings, translated_strings, _, translation_db_table)
-            vh.usermc(_["OK, English now!"], nick)  # Anything is possible here
+            _ = update_translation_strings(english_strings, db_table=translation_db_table)
+            vh.usermc(_("OK, English now!"), nick)  # Anything is possible here
 
         else:
-            vh.usermc(_["Sorry, but I speak only %s."] % "en, de, xx", nick)
+            vh.usermc(_("Sorry, but I speak only %s.") % "en, de, xx", nick)
 
         return 0
 
 
 def UnLoad():
-    vh.classmc(_["I'm shutting down..."], 10, 10)
+    vh.classmc(_("I'm shutting down..."), 10, 10)
 

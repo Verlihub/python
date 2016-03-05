@@ -9,7 +9,7 @@ Copyright (C) 2016 Frog (frogged on GitHub), the_frog at wp dot pl
 Distributed under the Boost Software License, Version 1.0.
 See the license terms at http://www.boost.org/LICENSE_1_0.txt
 
-Usage: %(app_name)s <filename> <storage_dict> <retrieval_dict> <func=0>
+Usage: %(app_name)s <filename> <storage_dict> <retrieval_dict> <is_dict=0>
 
 This program checks for missing or redundant tranlation strings in script
 <filename> where instead of gettext you have a dict of English strings
@@ -31,20 +31,25 @@ and <retrieval_dict> is called _ (to immitate gettext):
     # Now replace user_strings values with translations from another source,
     # for example a database table (id, string). This step isn't shown here.
 
-    _ = {}
+    mapping = {}
     for key in en_strings:
-        _[en_strings[key]] = user_strings[key]
+        mapping[en_strings[key]] = user_strings[key]
 
     # Afterwards, we use the same strings from en_strings but using _.
-    print _["This is script ABC, version %%s"] %% "1.2.3"
-    print _["Hello and welcome!"]
+    print mapping["This is script ABC, version %%s"] %% "1.2.3"
+    print mapping["Hello and welcome!"]
+
+    # Or you can define a gettext-like function and use it:
+    def _(s): return mapping[s]
+    print _("This is script ABC, version %%s") %% "1.2.3"
+    print _("Hello and welcome!")
 
 Notice that we made a mistake: X was changed to ABC. The script would crash.
 Spotting such errors is the exactly the purpose of this program. It will show
 you missing and redundant string together with their position in the script.
 
-Set optional argument <func> to 1 if instead of a dicty you use a function
-for retrieval (just like in gettext), for example: _("string").
+Set optional argument <is_dict> to 1 if instead of gettext_like function,
+_("string"), you use a string-to-string dictionary, _["string"].
 """
 
 
@@ -170,9 +175,9 @@ if __name__ == "__main__":
         filename = sys.argv[1]
         stored_dict_name = sys.argv[2]
         retrieved_dict_name = sys.argv[3]
-        using_function = 0
-        if len(sys.argv) == 5:
-            using_function = (sys.argv[4] == "1")
+        using_function = True
+        if len(sys.argv) == 5 and sys.argv[4] == "1":
+            using_function = False
         with open(filename) as f:
             source = f.read()
             checker = TranslationStringsChecker(stored_dict_name, retrieved_dict_name, using_function)

@@ -197,23 +197,26 @@ def fetch_translation_strings(db_table, limit=10000, vh=vh, silent=False):
     return {}
 
 
-def update_translation_strings(english, translated, gettext, db_table=None, use_translated=False, vh=vh, silent=False):
+def update_translation_strings(english, translated={}, mapping={}, db_table=None,
+    use_translated=False, vh=vh, silent=False):
     """Use this function to update your translation strings from a DB table or a dictionary.
 
         english dictionary must be in the form: { 0: "string", 1: "something else", ... }.
-        translated and gettext must also be dicts; they will be cleared and filled here.
+        translated and mapping must also be dicts; they will be cleared and filled here.
         db_table is the name of the database table storing the translations.
 
         If db_table is not provided, nothing will be written to or read from the database.
         If use_translated is true, translation will be read from translated instead of the DB
         and if db_table is given, they will be stored in the database.
+
+        This function returns a callable object that works like the gettext function.
     """
     if not isinstance(english, dict):
         raise TranslateError("english must be a dictionary")
     if not isinstance(translated, dict):
         raise TranslateError("translated must be a dictionary")
-    if not isinstance(gettext, dict):
-        raise TranslateError("gettext must be a dictionary")
+    if not isinstance(mapping, dict):
+        raise TranslateError("mapping must be a dictionary")
     if not isinstance(db_table, str) and db_table != None:
         raise TranslateError("db_table must be a string or be empty")
     if not len(english) > 0:
@@ -230,8 +233,6 @@ def update_translation_strings(english, translated, gettext, db_table=None, use_
     source = {}
     
     if use_translated:
-        if not isinstance(translated, dict):
-            raise TranslateError("translated must be a dictionary")
         for k, v in translated.items():
             if not isinstance(k, int):
                 raise TranslateError("all translated keys must be ints")
@@ -242,7 +243,7 @@ def update_translation_strings(english, translated, gettext, db_table=None, use_
         source = translated.copy()
 
     translated.clear()
-    gettext.clear()
+    mapping.clear()
     for k, v in english.items():
         translated[k] = v
 
@@ -272,7 +273,22 @@ def update_translation_strings(english, translated, gettext, db_table=None, use_
                         print("Bad translation string: %s" % e, file=sys.stderr)
 
     for key in english:
-        gettext[english[key]] = translated[key]
+        mapping[english[key]] = translated[key]
+
+    class gettext(object):
+        def __init__(self, mapping):
+            self.mapping = mapping.copy()  # we copy the mapping, so you can destroy the dicts
+
+        def __call__(self, string):
+            result = self.mapping.get(string)
+            if result:
+                return result
+            else:
+                if not silent:
+                    print("Using missing translation string: %s" % string, file=sys.stderr)
+                return string
+
+    return gettext(mapping)
 
 
 
@@ -323,18 +339,45 @@ def run_format_strings_test():
 
 def run_update_translation_strings_test():
     english = { 0: "a test", 1: "catastrophy", 2: "welcome %s!", 4: "%d users online", 5: "" }
-    reference = { 0: "ein Test", 1: "Katastrophe", 2: "Willkommen, %s!", 3: "Nichts", 4: "%s Nutzer online" }
-    x = {}
+    german = { 0: "ein Test", 1: "Katastrophe", 2: "Willkommen, %s!", 3: "Nichts", 4: "%s Nutzer online" }
 
-    german = reference.copy()
-    update_translation_strings(english, german, x, use_translated=True, silent=True)
+    _ = update_translation_strings(english, german, use_translated=True, silent=True)
     test_eq(german, { 0: "ein Test", 1: "Katastrophe", 2: "Willkommen, %s!", 4: "%s Nutzer online", 5: "" })
+    assert(_("a test") == "ein Test")
+    assert(_("catastrophy") == "Katastrophe")
+    assert(_("welcome %s!") == "Willkommen, %s!")
+    assert(_("%d users online") == "%s Nutzer online")
+    assert(_("missing") == "missing")
+    old = _
 
-    german[1] = "%s Katastrophe"
+    german[1] = "Katastrophe!!!"
     german[2] = "%sWillkommen, %s"
     german[4] = "%(num)s Nutzer online"
-    update_translation_strings(english, german, x, use_translated=True, silent=True)
-    test_eq(german, { 0: "ein Test", 1: "catastrophy", 2: "welcome %s!", 4: "%d users online", 5: "" })
+    _ = update_translation_strings(english, german, use_translated=True, silent=True)
+    test_eq(german, { 0: "ein Test", 1: "Katastrophe!!!", 2: "welcome %s!", 4: "%d users online", 5: "" })
+    german[0] = "xxxxxx"  # to make sure later changes don't change the mapping
+    english[1] = "cat"  # same here
+    assert(_("a test") == "ein Test")
+    assert(_("catastrophy") == "Katastrophe!!!")
+    assert(_("welcome %s!") == "welcome %s!")
+    assert(_("%d users online") == "%d users online")
+    assert(_("test") == "test")
+    # print(_.mapping)
+
+    _ = update_translation_strings(english, {0: "x", 1: "y", 4: "%d"}, use_translated=True, silent=True)
+    assert(_("a test") == "x")
+    assert(_("cat") == "y")
+    assert(_("welcome %s!") == "welcome %s!")
+    assert(_("%d users online") == "%d")
+    assert(_("aaa") == "aaa")
+    # print(_.mapping)
+
+    # check that the old translation mapping is still valid
+    assert(old("a test") == "ein Test")
+    assert(old("catastrophy") == "Katastrophe")
+    assert(old("welcome %s!") == "Willkommen, %s!")
+    assert(old("%d users online") == "%s Nutzer online")
+    assert(old("missing") == "missing")
 
 
 run_format_strings_test()
