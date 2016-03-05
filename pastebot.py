@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# PasteBot 0.0.2.1
+# PasteBot 0.0.2.2
 # © 2016 RoLex
 
 import vh, urllib, urllib2
@@ -11,7 +11,7 @@ pb_defs = {
 	"syntax": "syntax",
 	"content": "content",
 	"text": "text",
-	"agent": "PasteBot/0.0.2.1",
+	"agent": "PasteBot/0.0.2.2",
 	"timeout": 5,
 	"command": "paste",
 	"shortcut": "p",
@@ -82,9 +82,9 @@ def pb_reply (nick, data, oc):
 def pb_command (nick, data, oc):
 	global pb_defs
 
-	if data [1:len (pb_defs ["shortcut"]) + 1] == pb_defs ["shortcut"] and (data [len (pb_defs ["shortcut"]) + 1:len (pb_defs ["shortcut"]) + 2] == " " or len (data) == len (pb_defs ["shortcut"]) + 1):
+	if data [1:].startswith (pb_defs ["shortcut"] + " ") or data [1:] == pb_defs ["shortcut"]:
 		par = data [len (pb_defs ["shortcut"]) + 2:]
-	elif data [1:len (pb_defs ["command"]) + 1] == pb_defs ["command"]:
+	elif data [1:].startswith (pb_defs["command"]):
 		par = data [len (pb_defs ["command"]) + 2:]
 	else:
 		return 1
