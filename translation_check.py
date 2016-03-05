@@ -9,7 +9,7 @@ Copyright (C) 2016 Frog (frogged on GitHub), the_frog at wp dot pl
 Distributed under the Boost Software License, Version 1.0.
 See the license terms at http://www.boost.org/LICENSE_1_0.txt
 
-Usage: %(app_name)s <filename> <storage_dict> <retrieval_dict>
+Usage: %(app_name)s <filename> <storage_dict> <retrieval_dict> <func=0>
 
 This program checks for missing or redundant tranlation strings in script
 <filename> where instead of gettext you have a dict of English strings
@@ -42,14 +42,18 @@ and <retrieval_dict> is called _ (to immitate gettext):
 Notice that we made a mistake: X was changed to ABC. The script would crash.
 Spotting such errors is the exactly the purpose of this program. It will show
 you missing and redundant string together with their position in the script.
+
+Set optional argument <func> to 1 if instead of a dicty you use a function
+for retrieval (just like in gettext), for example: _("string").
 """
 
 
 
 class TranslationStringsChecker(object):
-    def __init__(self, stored_dict_name, retrieved_dict_name="_"):
+    def __init__(self, stored_dict_name, retrieved_dict_name="_", using_function=False):
         self.stored_dict_name = stored_dict_name
         self.retrieved_dict_name = retrieved_dict_name
+        self.using_function = using_function
         self.clear()
 
     def clear(self):
@@ -77,13 +81,25 @@ class TranslationStringsChecker(object):
                                 print "Error in %s:%d:%d: nonstring dict value" % (
                                     self.filename, x.lineno, x.col_offset)
 
-        for a in ast.walk(data):
-            if isinstance(a, _ast.Subscript) and isinstance(a.value, _ast.Name):
-                name = a.value.id
-                if name == self.retrieved_dict_name:
-                    if hasattr(a.slice, "value") and isinstance(a.slice.value, _ast.Str):
-                        x = a.slice.value
-                        self.retrieved_raw.append((x.s, x.lineno, x.col_offset))
+        if not self.using_function:
+            for a in ast.walk(data):
+                if isinstance(a, _ast.Subscript) and isinstance(a.value, _ast.Name):
+                    name = a.value.id
+                    if name == self.retrieved_dict_name:
+                        if hasattr(a.slice, "value") and isinstance(a.slice.value, _ast.Str):
+                            x = a.slice.value
+                            self.retrieved_raw.append((x.s, x.lineno, x.col_offset))
+        else:
+            for a in ast.walk(data):
+                if isinstance(a, _ast.Call) and isinstance(a.func, _ast.Name):
+                    name = a.func.id
+                    if name == self.retrieved_dict_name:
+                        if len(a.args) == 1 and isinstance(a.args[0], _ast.Str):
+                            x = a.args[0]
+                            self.retrieved_raw.append((x.s, x.lineno, x.col_offset))
+                        else:
+                            print "Suspicious use of '%s' in %s:%d:%d" % (
+                                self.retrieved_dict_name, self.filename, a.lineno, a.col_offset)
 
         for item in self.stored_raw:
             if item[0] in self.stored:
@@ -111,15 +127,23 @@ class TranslationStringsChecker(object):
 
         if self.missing:
             print "\nWARNING: Following strings are used but are not defined (program will crash!):"
+            results = []
             for key in self.missing:
                 for x in self.retrieved[key]:
-                    print "%-16s" % ("Line %4d:%d" % (x[1], x[2])), repr(x[0])
+                    results.append(x)
+
+            for x in sorted(results, key=lambda a: a[1]):
+                print "%-16s" % ("Line %4d:%d" % (x[1], x[2])), repr(x[0])
 
         if self.redundant:
             print "\nFollowing strings have translations but are not used:"
+            results = []
             for key in self.redundant:
                 for x in self.stored[key]:
-                    print "%-16s" % ("Line %4d:%d" % (x[1], x[2])), repr(x[0])
+                    results.append(x)
+
+            for x in sorted(results, key=lambda a: a[1]):
+                print "%-16s" % ("Line %4d:%d" % (x[1], x[2])), repr(x[0])
 
         print
 
@@ -142,13 +166,16 @@ assert(checker.redundant == set(["another"]))
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 4:
+    if len(sys.argv) in [4, 5]:
         filename = sys.argv[1]
         stored_dict_name = sys.argv[2]
         retrieved_dict_name = sys.argv[3]
+        using_function = 0
+        if len(sys.argv) == 5:
+            using_function = (sys.argv[4] == "1")
         with open(filename) as f:
             source = f.read()
-            checker = TranslationStringsChecker(stored_dict_name, retrieved_dict_name)
+            checker = TranslationStringsChecker(stored_dict_name, retrieved_dict_name, using_function)
             checker.parse(source, filename)
             checker.print_stats()
     else:
