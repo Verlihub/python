@@ -257,27 +257,27 @@ bl_lang = {
 }
 
 bl_conf = {
-	"nick_feed": ["", "str", 0, 255, 150],
-	"code_block": ["", "str", 0, 255, 151],
-	"code_except": ["", "str", 0, 255, 152],
-	"class_feed": [5, "int", 0, 11, 153],
-	"class_conf": [10, "int", 3, 11, 154],
-	"class_skip": [3, "int", 0, 11, 155],
-	"time_feed": [60, "int", 0, 1440, 156],
-	"time_down": [5, "int", 1, 300, 157],
-	"notify_update": [1, "int", 0, 1, 158],
-	"find_maxres": [1000, "int", 1, 10000, 159],
-	"prox_lookup": [0, "int", 0, 1, 160],
-	"prox_userip": ["", "str", 0, 15, 161],
-	"prox_match": [3, "int", 1, 8, 162],
-	"prox_start": [5, "int", 0, 30, 163],
-	"prox_timer": [3, "int", 1, 300, 164],
-	"prox_queue": [100, "int", 1, 10000, 165],
-	"prox_maxreq": [1, "int", 1, 100, 166],
-	"prox_nofail": [0, "int", 0, 1, 168],
-	"prox_debug": [0, "int", 0, 2, 169],
-	"action_proxy": [1, "int", 0, 1, 181],
-	"action_mylist": [1, "int", 0, 1, 182]
+	"nick_feed": ["", "str", 0, 255, "User nick to receive all feed messages"],
+	"code_block": ["", "str", 0, 255, "Space separated country codes to block"],
+	"code_except": ["", "str", 0, 255, "Space separated country codes to except"],
+	"class_feed": [5, "int", 0, 11, "Minimal class to receive feed messages"],
+	"class_conf": [10, "int", 3, 11, "Minimal class to access script commands"],
+	"class_skip": [3, "int", 0, 11, "Minimal class to skip public proxy lookup"],
+	"time_feed": [60, "int", 0, 1440, "Minutes to delay same IP notifications"],
+	"time_down": [5, "int", 1, 300, "Download operation timeout in seconds"],
+	"notify_update": [1, "int", 0, 1, "Enable blacklist list update notification"],
+	"find_maxres": [1000, "int", 1, 10000, "Maximum number of blacklist search results"],
+	"prox_lookup": [0, "int", 0, 1, "Enable public proxy lookup on user login"],
+	"prox_userip": ["", "str", 0, 15, "Own IP required for public proxy lookup"],
+	"prox_match": [3, "int", 1, 8, "Minimal number of public proxy matches"],
+	"prox_start": [5, "int", 0, 30, "Minutes to wait after hub is started"],
+	"prox_timer": [3, "int", 1, 300, "Seconds to process proxy lookup queue"],
+	"prox_queue": [100, "int", 1, 10000, "Maximum number of proxy lookups to enqueue"],
+	"prox_maxreq": [1, "int", 1, 100, "Maximum number of proxy lookups to send"],
+	"prox_nofail": [0, "int", 0, 1, "Disable proxy lookup failure notifications"],
+	"prox_debug": [0, "int", 0, 2, "Level of proxy lookup debug information"],
+	"action_proxy": [1, "int", 0, 1, "Block action on public proxy detections"],
+	"action_mylist": [1, "int", 0, 1, "Block action on my list item detections"]
 }
 
 bl_stat = {
@@ -1646,7 +1646,7 @@ def OnOperatorCommand (user, data):
 				out += ("\r\n [*] " + bl_getlang ("Type: %s")) % item [1]
 				out += ("\r\n [*] " + bl_getlang ("Range: %s - %s")) % (item [2], item [3])
 				out += ("\r\n [*] " + bl_getlang ("Value: %s")) % item [0]
-				out += ("\r\n [*] " + bl_getlang ("Explanation: %s") + "\r\n") % bl_lang [item [4]][1]
+				out += ("\r\n [*] " + bl_getlang ("Explanation: %s") + "\r\n") % bl_getlang (item [4])
 
 			bl_reply (user, out)
 			return 0
@@ -1662,7 +1662,7 @@ def OnOperatorCommand (user, data):
 				out += ("\r\n [*] " + bl_getlang ("Old value: %s")) % (bl_getlang ("None") if bl_getconf (pars [0][0]) == None else bl_getconf (pars [0][0]))
 				out += ("\r\n [*] " + bl_getlang ("New value: %s")) % pars [0][1]
 				out += ("\r\n [*] " + bl_getlang ("Status: %s")) % bl_setconf (pars [0][0], pars [0][1])
-				out += ("\r\n [*] " + bl_getlang ("Explanation: %s") + "\r\n") % (bl_lang [bl_conf [pars [0][0]][4]][1] if pars [0][0] in bl_conf else bl_getlang ("Item not found"))
+				out += ("\r\n [*] " + bl_getlang ("Explanation: %s") + "\r\n") % (bl_getlang (bl_conf [pars [0][0]][4]) if pars [0][0] in bl_conf else bl_getlang ("Item not found"))
 			else:
 				out = bl_getlang ("Missing command parameters: %s") % ("set <" + bl_getlang ("item") + "> [" + bl_getlang ("value") + "]")
 
