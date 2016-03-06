@@ -64,7 +64,7 @@ bl_defs = {
 	"userip": "http://www.te-home.net/?do=tools&action=whatismyip",
 	"referer": ["https://github.com/verlihub/python/", []],
 	"useragent": ["Blacklist/%s", None],
-	"botdesc": "Blacklist %s",
+	"botdesc": "Blacklist %s<Blacklist V:%s,M:A,H:0/0/1,S:0>",
 	"datadir": os.path.join (vh.basedir, "blackdata"),
 	"timersec": 60,
 	"delwait": 60,
@@ -956,12 +956,12 @@ def bl_notify (data):
 
 def bl_addbot (nick):
 	global bl_defs, bl_conf
-	vh.AddRobot (nick, bl_conf ["class_feed"][0], bl_defs ["botdesc"] % bl_defs ["version"], "", "", "0")
+	vh.AddRobot (nick, bl_conf ["class_feed"][0], bl_defs ["botdesc"] % (bl_defs ["version"], bl_defs ["version"]), "", "", "0")
 
 def bl_delbot (nick):
 	vh.DelRobot (nick)
 
-def OnUnLoad (code):
+def UnLoad ():
 	global bl_conf
 
 	if len (bl_conf ["nick_bot"][0]):
