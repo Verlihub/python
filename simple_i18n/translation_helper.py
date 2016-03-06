@@ -5,6 +5,8 @@
 # Copyright (C) 2016 Frog (frogged on GitHub), the_frog at wp dot pl
 # Distributed under the Boost Software License, Version 1.0.
 # See the license terms at http://www.boost.org/LICENSE_1_0.txt
+# Get this script at https://github.com/Verlihub/python/tree/master/simple_i18n
+# This copy is version 1.1.0 from 2016-03-06
 #
 # This script was inspired by Rolex and his blacklist.py script
 # available here: https://github.com/Verlihub/python/blob/master/blacklist.py
@@ -24,8 +26,8 @@
 # your own version of SQL function inside a vh dict as a function argument.
 #
 # update_translation_strings is probably the only function you will need.
-# Look at https://github.com/Verlihub/python/blob/master/translation_example.py
-# to see how you can use it from your scripts.
+# Look at the translation_example.py script to see how you can use it:
+# https://github.com/Verlihub/python/tree/master/simple_i18n
 
 
 from __future__ import print_function
@@ -338,11 +340,11 @@ def run_format_strings_test():
 
 
 def run_update_translation_strings_test():
-    english = { 0: "a test", 1: "catastrophy", 2: "welcome %s!", 4: "%d users online", 5: "" }
-    german = { 0: "ein Test", 1: "Katastrophe", 2: "Willkommen, %s!", 3: "Nichts", 4: "%s Nutzer online" }
+    english = { 1: "a test", 2: "catastrophy", 3: "welcome %s!", 5: "%d users online", 6: "" }
+    german = { 1: "ein Test", 2: "Katastrophe", 3: "Willkommen, %s!", 4: "Nichts", 5: "%s Nutzer online" }
 
     _ = update_translation_strings(english, german, use_translated=True, silent=True)
-    test_eq(german, { 0: "ein Test", 1: "Katastrophe", 2: "Willkommen, %s!", 4: "%s Nutzer online", 5: "" })
+    test_eq(german, { 1: "ein Test", 2: "Katastrophe", 3: "Willkommen, %s!", 5: "%s Nutzer online", 6: "" })
     assert(_("a test") == "ein Test")
     assert(_("catastrophy") == "Katastrophe")
     assert(_("welcome %s!") == "Willkommen, %s!")
@@ -350,13 +352,13 @@ def run_update_translation_strings_test():
     assert(_("missing") == "missing")
     old = _
 
-    german[1] = "Katastrophe!!!"
-    german[2] = "%sWillkommen, %s"
-    german[4] = "%(num)s Nutzer online"
+    german[2] = "Katastrophe!!!"
+    german[3] = "%sWillkommen, %s"
+    german[5] = "%(num)s Nutzer online"
     _ = update_translation_strings(english, german, use_translated=True, silent=True)
-    test_eq(german, { 0: "ein Test", 1: "Katastrophe!!!", 2: "welcome %s!", 4: "%d users online", 5: "" })
-    german[0] = "xxxxxx"  # to make sure later changes don't change the mapping
-    english[1] = "cat"  # same here
+    test_eq(german, { 1: "ein Test", 2: "Katastrophe!!!", 3: "welcome %s!", 5: "%d users online", 6: "" })
+    german[1] = "xxxxxx"  # to make sure later changes don't change the mapping
+    english[2] = "cat"  # same here
     assert(_("a test") == "ein Test")
     assert(_("catastrophy") == "Katastrophe!!!")
     assert(_("welcome %s!") == "welcome %s!")
@@ -364,7 +366,7 @@ def run_update_translation_strings_test():
     assert(_("test") == "test")
     # print(_.mapping)
 
-    _ = update_translation_strings(english, {0: "x", 1: "y", 4: "%d"}, use_translated=True, silent=True)
+    _ = update_translation_strings(english, {1: "x", 2: "y", 5: "%d"}, use_translated=True, silent=True)
     assert(_("a test") == "x")
     assert(_("cat") == "y")
     assert(_("welcome %s!") == "welcome %s!")

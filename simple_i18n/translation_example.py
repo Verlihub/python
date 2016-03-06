@@ -4,6 +4,8 @@
 # Example multi-language script.
 # Created in 2016 by Frog (frogged on GitHub), the_frog at wp dot pl
 # This file is in public domain. Do whatever you want at yuor own risk.
+# Get new version at https://github.com/Verlihub/python/tree/master/simple_i18n
+# This copy is version 1.1.0 from 2016-03-06
 #
 # Nothing stops you from using gettext, but it might be easier to simply store
 # all translated strings in the database (or anywhere else). This script shows
@@ -13,8 +15,8 @@
 #
 # When developing scripts the strings can soon go out od sync, which would
 # cause the script to raise exceptions and not work properly. To mitigate that
-# run translation_checke over your script, available here:
-# https://github.com/Verlihub/python/blob/master/translation_check.py
+# run translation_check.py over your script, available here:
+# https://github.com/Verlihub/python/tree/master/simple_i18n
 #
 # In the case of this script, run:
 # python translation_check.py translation_example.py english_strings _
@@ -25,7 +27,8 @@ from __future__ import print_function
 import sys
 import vh
 
-# If we put the module in the scripts directory, we need to add the directory to the path
+# This script depends on the translation_helper.py script, so you need to get it as well.
+# If we put the module in the scripts directory, we need to add the directory to the path:
 sys.path.append(vh.basedir + "/scripts")
 from translation_helper import update_translation_strings
 
@@ -37,10 +40,10 @@ my_name = "Translation Example"
 # Only use %s to mark placeholders and never put an "s" after "%%" (that would confuse the counting).
 
 english_strings = {
-    0: "Script %s is ready.",
-    1: "Sorry, but I speak only %s.",
-    2: "OK, English now!",
-    3: "I'm shutting down...",
+    1: "Script %s is ready.",
+    2: "Sorry, but I speak only %s.",
+    3: "OK, English now!",
+    4: "I'm shutting down...",
 }
 
 
@@ -48,10 +51,10 @@ english_strings = {
 # in the database or in a separate file.
 
 german_strings = {
-    0: "Script %s ist fertig.",
-    1: "Es tut mir Leid, aber ich spreche nur %s.",
-    2: "Jawohl, jetzt Deutsch!",
-    3: "Ich schalte aus...",
+    1: "Script %s ist fertig.",
+    2: "Es tut mir Leid, aber ich spreche nur %s.",
+    3: "Jawohl, jetzt Deutsch!",
+    4: "Ich schalte aus...",
 }
 
 # Replace this with your script's unique table name:
@@ -65,7 +68,7 @@ translation_db_table = "translation_example_py_strings"
 _ = update_translation_strings(english_strings, db_table=translation_db_table)
 
 # This will print in English or the language in the database if the table already existed:
-vh.classmc(_("Script %s is ready.") % my_name, 10, 10)
+vh.classmc(_("Script %s is ready.") % my_name, 3, 10)
 
 
 def OnOperatorCommand(nick, data):
@@ -99,5 +102,5 @@ def OnOperatorCommand(nick, data):
 
 
 def UnLoad():
-    vh.classmc(_("I'm shutting down..."), 10, 10)
+    vh.classmc(_("I'm shutting down..."), 3, 10)
 

@@ -8,6 +8,8 @@ Python script translation strings checker
 Copyright (C) 2016 Frog (frogged on GitHub), the_frog at wp dot pl
 Distributed under the Boost Software License, Version 1.0.
 See the license terms at http://www.boost.org/LICENSE_1_0.txt
+Get this script from https://github.com/Verlihub/python/tree/master/simple_i18n
+This copy is version 1.1.0 from 2016-03-06
 
 Usage: %(app_name)s <filename> <storage_dict> <retrieval_dict> <is_dict=0>
 
@@ -23,9 +25,9 @@ Here is an example Python script, where <storage_dict> is called en_strings
 and <retrieval_dict> is called _ (to immitate gettext):
 
     en_strings = {
-        0: "This is script X, version %%s",
-        1: "Hello and welcome!",
-        2: "There was an error",
+        1: "This is script X, version %%s",
+        2: "Hello and welcome!",
+        3: "There was an error",
     }
     user_strings = en_strings.copy()
     # Now replace user_strings values with translations from another source,
