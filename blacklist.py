@@ -253,7 +253,8 @@ bl_lang = {
 	180: "Notifying blacklisted login from %s with IP %s.%s: %s",
 	181: "Block action on public proxy detections",
 	182: "Block action on my list item detections",
-	183: "Notified connections: %s"
+	183: "Notified connections: %s",
+	184: "Blacklisted login exception from %s with IP %s.%s: %s"
 }
 
 bl_conf = {
@@ -717,14 +718,17 @@ def bl_makedir (dir):
 
 	return [True, dir]
 
-def bl_excheck (addr, intaddr, code, name, stat = True):
+def bl_excheck (addr, intaddr, code, name, nick = None):
 	global bl_conf, bl_stat, bl_exli
 
 	if len (bl_conf ["code_except"][0]) and len (code) and str ().join ([" ", code, " "]) in str ().join ([" ", bl_conf ["code_except"][0], " "]):
 		if bl_waitfeed (addr):
-			bl_notify ((bl_getlang ("Blacklisted connection exception from %s.%s: %s") + " | %s") % (addr, code, name, bl_getlang ("Excepted country")))
+			if nick:
+				bl_notify ((bl_getlang ("Blacklisted login exception from %s with IP %s.%s: %s") + " | %s") % (nick, addr, code, name, bl_getlang ("Excepted country")))
+			else:
+				bl_notify ((bl_getlang ("Blacklisted connection exception from %s.%s: %s") + " | %s") % (addr, code, name, bl_getlang ("Excepted country")))
 
-		if stat:
+		if not nick:
 			bl_stat ["except"] += 1
 
 		return 1
@@ -732,17 +736,23 @@ def bl_excheck (addr, intaddr, code, name, stat = True):
 	for item in bl_exli:
 		if intaddr >= item [0] and intaddr <= item [1]:
 			if bl_waitfeed (addr):
-				bl_notify ((bl_getlang ("Blacklisted connection exception from %s.%s: %s") + " | %s") % (addr, code, name, item [2]))
+				if nick:
+					bl_notify ((bl_getlang ("Blacklisted login exception from %s with IP %s.%s: %s") + " | %s") % (nick, addr, code, name, item [2]))
+				else:
+					bl_notify ((bl_getlang ("Blacklisted connection exception from %s.%s: %s") + " | %s") % (addr, code, name, item [2]))
 
-			if stat:
+			if not nick:
 				bl_stat ["except"] += 1
 
 			return 1
 
 	if bl_waitfeed (addr):
-		bl_notify (bl_getlang ("Blocking blacklisted connection from %s.%s: %s") % (addr, code, name))
+		if nick:
+			bl_notify (bl_getlang ("Blocking blacklisted login from %s with IP %s.%s: %s") % (nick, addr, code, name))
+		else:
+			bl_notify (bl_getlang ("Blocking blacklisted connection from %s.%s: %s") % (addr, code, name))
 
-	if stat:
+	if not nick:
 		bl_stat ["block"] += 1
 
 	return 0
@@ -1821,11 +1831,11 @@ def OnTimer (msec):
 
 										if not bl_conf ["action_proxy"][0]:
 											if bl_waitfeed (item [0]):
-												bl_notify (bl_getlang ("Notifying blacklisted login from %s with IP %s.%s: %s") % (item [1][0] if len (item [1]) == 1 else str (item [1]), item [0], code, bl_getlang ("Public proxy")))
+												bl_notify (bl_getlang ("Notifying blacklisted login from %s with IP %s.%s: %s") % (item [1][0] if len (item [1]) == 1 else ", ".join (item [1]), item [0], code, bl_getlang ("Public proxy")))
 
 											bl_stat ["notify"] += 1
 											bl_prox [pos][id][2] = 3
-										elif bl_excheck (item [0], intaddr, code, bl_getlang ("Public proxy"), False):
+										elif bl_excheck (item [0], intaddr, code, bl_getlang ("Public proxy"), item [1][0] if len (item [1]) == 1 else ", ".join (item [1])):
 											bl_stat ["except"] += len (item [1])
 											bl_prox [pos][id][2] = 3
 										else:
