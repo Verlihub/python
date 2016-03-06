@@ -45,22 +45,28 @@ Now, if you edit those values and run the script again, the strings from this da
 
 Or, instead of using the database, you could load the strings from a text file, where the ID is the line number (and that is why we left the zeroth string unused!). Let's say the file is called my_translations.txt and looks like this:
 
-    Script %s ist fertig.
-    Es tut mir Leid, \naber ich spreche nur %s.
-    Jawohl, jetzt Deutsch!
-    Ich schalte aus...
+    Script %s ist fertig!!!
+    Es tut mir sehr Leid, \naber ich spreche nur %s.
+    Jawohl, jetzt kommt Deutsch!
+    Ich schalte mich aus...
 
 You could load it and use like this:
 
 ```py
 with open("my_translations.txt") as f:
-    data = [x.replace('\\n', '\n').replace('\\r', '\r') for x in f.readlines()]
+    data = [x.strip('\n\r').replace('\\n', '\n').replace('\\r', '\r') for x in f.readlines()]
     translations = dict([(i+1, x) for i, x in enumerate(data)])
 
 _ = update_translation_strings(english_strings, translations, use_translated=True)
 ```
 
-and afterwards you can print the strings in the same way as you would with strings loaded from the database. Please note that there is a `\n` in the second line in the translations file to denote a newline, because we obviously could not split the string into two lines. Therefore we had to use `replace('\\n', '\n')` to convert all escaped newlines into real newlines (and we did the same for carriage return, `\r`).
+and afterwards you can print the strings in the same way as you would with strings loaded from the database. Please note that there is a `\n` in the second line in the translations file to denote a newline, because we obviously could not split the string into two lines. Therefore we had to use `replace('\\n', '\n')` to convert all escaped newlines into real newlines (and we did the same for carriage return, `\r`). And since you might want to use loading translations strings from file, translation_helper supports that and the obove code can be replaced with:
+
+```py
+_ = update_translation_strings(english_strings, file="my_translations.txt")
+```
+
+If the translation file does not exist, it will be created and filled English strings. If you do not wish for that to happen you should add the `create=False` argument — that will also prevent the function from creating a database table when the `db_table` argument is used.
 
 As the script grows it can be hard to track if all the `_("string")` in the file match the strings present in the translation dictionary (`english_strings` in this example). The translation_check.py script can help you with that. For example, to check the translation_example.py script, you would use the command:
 
@@ -69,5 +75,5 @@ As the script grows it can be hard to track if all the `_("string")` in the file
 That's about it. Unfortunately pluralization is not supported, so you will have to bend the strings to make them look decent. For example instead of writing "There are %d files available", which would look strange if only one file were available, you could write "The number of available files is %d". If you need pluralization, you'll have to use Gettext instead (or reinvent it).
 
 
-> Document last updated on 2016-03-06
+> This document was last updated on 2016-03-06 12:00 UTC
 

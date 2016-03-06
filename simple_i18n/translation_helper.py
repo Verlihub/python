@@ -207,7 +207,7 @@ def store_translation_string(id, text, db_table, vh=vh):
 def fetch_translation_strings(db_table, limit=10000, vh=vh, silent=False):
     """Create a translation dict from strings stored in a DB table."""
     success, rows = vh.SQL("select `id`, `value` from `%s`" % db_table, limit)
-    if success and rows:
+    if success and len(rows):
         result = {}
         for item in rows:
             result[int(item[0])] = item[1]
@@ -219,17 +219,23 @@ def fetch_translation_strings(db_table, limit=10000, vh=vh, silent=False):
     return {}
 
 
-def update_translation_strings(english, translated={}, mapping={}, db_table=None,
-    use_translated=False, vh=vh, silent=False):
+def update_translation_strings(english, translated={}, db_table=None,
+    use_translated=False, vh=vh, silent=False, filename=None, create=True):
     """Use this function to update your translation strings from a DB table or a dictionary.
 
         english dictionary must be in the form: { 0: "string", 1: "something else", ... }.
-        translated and mapping must also be dicts; they will be cleared and filled here.
+        translated must also be a dictionary; it will be cleared and filled here.
         db_table is the name of the database table storing the translations.
 
         If db_table is not provided, nothing will be written to or read from the database.
         If use_translated is true, translation will be read from translated instead of the DB
-        and if db_table is given, they will be stored in the database.
+        and if db_table is given, they will be stored in the database (unless create == False).
+
+        You can also read strings from a file, by setting filename.
+        If the file didn't exist, it will be created and filled with English unless create == False.
+        Each line in the file is a translation string and the line number is the ID, starting from 1.
+        That's why you should not use the 0 ID in translations.
+        If you need to embed a newline, write \\n, and for carriage return use \\r.
 
         This function returns a callable object that works like the gettext function.
     """
@@ -237,12 +243,14 @@ def update_translation_strings(english, translated={}, mapping={}, db_table=None
         raise TranslateError("english must be a dictionary")
     if not isinstance(translated, dict):
         raise TranslateError("translated must be a dictionary")
-    if not isinstance(mapping, dict):
-        raise TranslateError("mapping must be a dictionary")
-    if not isinstance(db_table, str) and db_table != None:
+    if not isinstance(db_table, str) and db_table:
         raise TranslateError("db_table must be a string or be empty")
+    if not isinstance(filename, str) and filename:
+        raise TranslateError("filename must be a string or be empty")
     if not len(english) > 0:
         raise TranslateError("english cannot be empty")
+    if db_table and filename:
+        raise TranslateError("You cannot use db_table and filename at the same time")
 
     for k, v in english.items():
         if not isinstance(k, int):
@@ -265,12 +273,12 @@ def update_translation_strings(english, translated={}, mapping={}, db_table=None
         source = translated.copy()
 
     translated.clear()
-    mapping.clear()
+    mapping = {}
     for k, v in english.items():
         translated[k] = v
 
 
-    if db_table:
+    if db_table and create:
         if not create_translation_db_table(db_table, vh):
             raise TranslateError("failed to create database translation table (if required)")
 
@@ -278,8 +286,34 @@ def update_translation_strings(english, translated={}, mapping={}, db_table=None
             if not store_translation_string(id, text, db_table):
                 raise TranslateError("failed to insert to DB item %s: %s" % (id, repr(text)))
 
+    if db_table:
         limit = max(english.keys()) + 1
         source = fetch_translation_strings(db_table, limit, vh, silent)
+
+    if filename:
+        f = ff = None
+        try:
+            f = open(filename, "r")
+        except IOError, e:
+            if create:
+                try:
+                    ff = open(filename, "w")
+                except IOError, ee:
+                    if not silent:
+                        print("Cannot read file %s (%s) nor create it (%s)" % (filename, e, ee), file=sys.stderr)
+                if ff:
+                    for k, v in english.items():
+                        if k == 0:
+                            continue  # because file editors do not number from zero!
+                        ff.write(v.replace('\n', '\\n').replace('\r', '\\r'))
+                        ff.write('\n')
+                    ff.close()
+            elif not silent:
+                print("Cannot read file %s (%s)" % (filename, e), file=sys.stderr)
+        if f:
+            data = [x.strip('\n\r').replace('\\n', '\n').replace('\\r', '\r') for x in f.readlines()]
+            source = dict([(i+1, x) for i, x in enumerate(data)])
+            f.close()
 
     if source:
         for id, text in source.items():

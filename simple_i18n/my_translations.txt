@@ -1,0 +1,4 @@
+Script %s ist fertig!!!
+Es tut mir sehr Leid, \naber ich spreche nur %s.
+Jawohl, jetzt kommt Deutsch!
+Ich schalte mich aus...

@@ -60,6 +60,9 @@ german_strings = {
 # Replace this with your script's unique table name:
 translation_db_table = "translation_example_py_strings"
 
+# Replace this with path to your script's translation strings file:
+translation_file = vh.basedir + "/scripts/my_translations.txt"
+
 
 # This would only prepare the English strings for use with _[text]:
 # _ = update_translation_strings(english_strings)
@@ -90,13 +93,18 @@ def OnOperatorCommand(nick, data):
             _ = update_translation_strings(english_strings, german_strings.copy(), use_translated=True)
             vh.usermc(_("OK, English now!"), nick)  # This will show up in German!
 
-        elif lang == "xx":
+        elif lang == "database":
             # Load whatever language is used in the strings stored in the database:
             _ = update_translation_strings(english_strings, db_table=translation_db_table)
             vh.usermc(_("OK, English now!"), nick)  # Anything is possible here
 
+        elif lang == "file":
+            # Load whatever language is used in the translation file:
+            _ = update_translation_strings(english_strings, filename=translation_file, create=False)
+            vh.usermc(_("OK, English now!"), nick)  # Anything is possible here
+
         else:
-            vh.usermc(_("Sorry, but I speak only %s.") % "en, de, xx", nick)
+            vh.usermc(_("Sorry, but I speak only %s.") % "en, de, database, file", nick)
 
         return 0
 
