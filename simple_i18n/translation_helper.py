@@ -6,7 +6,7 @@
 # Distributed under the Boost Software License, Version 1.0.
 # See the license terms at http://www.boost.org/LICENSE_1_0.txt
 # Get this script at https://github.com/Verlihub/python/tree/master/simple_i18n
-# This copy is version 1.1.0 from 2016-03-06
+# This copy is version 1.2.0 from 2016-03-06
 #
 # This script was inspired by Rolex and his blacklist.py script
 # available here: https://github.com/Verlihub/python/blob/master/blacklist.py
@@ -36,8 +36,14 @@ import sys
 try:
     import vh
 except:
-    print("Error: VH module not found", file=sys.stderr)
-    vh = dict(SQL=lambda a, b=0: False)
+    if __name__ != "__main__":
+        print("Warning: VH module not found", file=sys.stderr)
+
+    # vh module wasn't found so we create a dummy "module" with disabled SQL function
+    class dummy_vh_module(object):
+        def SQL(self, a, b=0): return (False, [])
+
+    vh = dummy_vh_module()
 
 
 def escape_sql(data):
@@ -136,11 +142,18 @@ def parse_format_string(string, full=False):
         if state == 'type':
             if c in format_types:
                 format_type = c.lower()
+                compatibility = 'f'
+                if format_type == 'c':
+                    compatibility = "c"
+                elif format_type in ['s', 'r']:
+                    compatibility = 's'
                 if not name:
                     positional_args += 1
-                report.append((name, format_type, flags, width, precision, length_mod))
+                report.append(dict(name=name, type=format_type, flags=flags, width=width, prec=precision,
+                    len=length_mod, is_width='', compat=compatibility, compat_list=[compatibility]))
                 if width == '*':
-                    report.append(('*', '', '', '', '', ''))
+                    report.append(dict(name='', type='*', flags='', width='', prec='',
+                        len='', is_width='*', compat='*', compat_list=['*']))
                 name = flags = width = precision = length_mod = format_type = ""
                 state = 'out'
                 continue
@@ -155,12 +168,19 @@ def parse_format_string(string, full=False):
         raise FormatMixedArgs("Cannot use both mapping and positional args in format string %s" % repr(string))
     if named_args:
         for x in report:
-            mapping[x[0]] = x  # we store only one instance, but format_type may differ
+            if x['name'] in mapping:
+                mapping[x['name']]['compat_list'].append(x['compat'])
+            else:
+                mapping[x['name']] = x
+        for k, v in mapping.items():
+            # compat_list must show only represent the compatibility types used, not their number
+            v['compat_list'] = sorted(list(set(v['compat_list'])))
+            v['compat'] = ''.join(v['compat_list'])
         if not full:
-            return sorted(mapping.keys())
+            return ['%s/%s' % (x[1]['name'], x[1]['compat']) for x in sorted(mapping.items())]
         return mapping
     if not full:
-        return [x[0] for x in report]
+        return ['%s/%s' % (x['name'], x['compat']) for x in report]
     return report
 
 
@@ -175,13 +195,13 @@ def create_translation_db_table(db_table, vh=vh):
                 "`id` bigint unsigned not null primary key," \
                 "`value` text collate utf8_unicode_ci not null" \
             ") engine = myisam default character set utf8 collate utf8_unicode_ci" \
-            % db_table)
+            % db_table)[0]
 
 
 def store_translation_string(id, text, db_table, vh=vh):
     """Stores a string to the DB translation table unless it already exists."""
     return vh.SQL("insert ignore into `%s` (`id`, `value`) values (%s, '%s')" % (
-            db_table, str(id), escape_sql(text)))
+            db_table, str(id), escape_sql(text)))[0]
 
 
 def fetch_translation_strings(db_table, limit=10000, vh=vh, silent=False):
@@ -252,7 +272,7 @@ def update_translation_strings(english, translated={}, mapping={}, db_table=None
 
     if db_table:
         if not create_translation_db_table(db_table, vh):
-            raise TranslateError("failed to create database translation table if it was required")
+            raise TranslateError("failed to create database translation table (if required)")
 
         for id, text in english.iteritems():
             if not store_translation_string(id, text, db_table):
@@ -306,7 +326,7 @@ def test_eq(a, b, msg=None):
 
 def run_format_strings_test():
     p = parse_format_string
-    c = do_format_strings_match
+    match = do_format_strings_match
 
     def throws(s, exc=Exception):
         try:
@@ -315,9 +335,9 @@ def run_format_strings_test():
             return True
         return False
 
-    assert(p("") == [])
-    assert(p("blah blah") == [])
-    assert(p("blah %% blah %%") == [])
+    test_eq(p(""), [])
+    test_eq(p("blah blah"), [])
+    test_eq(p("blah %% blah %%"), [])
 
     assert(throws("%w", FormatUnrecognized))
     assert(throws("%123w", FormatUnrecognized))
@@ -330,25 +350,76 @@ def run_format_strings_test():
     assert(throws("blah %(a)s %s", FormatMixedArgs))
     assert(throws("blah %(a)s %(b)*s", FormatMixedArgs))
 
-    assert(p("test %d") == [""])
-    assert(p("test %d %s") == ["", ""])
-    assert(p("test %*d %s") == ["", "*", ""])
-    assert(p(" %(abc)d") == ["abc"])
-    assert(p(" %(abc)d %(x)s") == ["abc", "x"])
-    assert(p(" %(x)s %(abc)d") == ["abc", "x"])
-    assert(p(" %(x)s %(abc)d %%%(x)-06.3f") == ["abc", "x"])
+    x = p("test %u", True)[0]
+    test_eq(x.get("name"), '')
+    test_eq(x.get("type"), 'u')
+    test_eq(x.get("flags"), '')
+    test_eq(x.get("width"), '')
+    test_eq(x.get("prec"), '')
+    test_eq(x.get("len"), '')
+    test_eq(x.get("is_width"), '')
+    test_eq(x.get("compat"), 'f')
+    test_eq(x.get("compat_list"), ['f'])
+
+    x = p("test %020.4lG", True)[0]
+    test_eq(x.get("name"), '')
+    test_eq(x.get("type"), 'g')
+    test_eq(x.get("flags"), '0')
+    test_eq(x.get("width"), '20')
+    test_eq(x.get("prec"), '4')
+    test_eq(x.get("len"), 'l')
+    test_eq(x.get("is_width"), '')
+    test_eq(x.get("compat"), 'f')
+    test_eq(x.get("compat_list"), ['f'])
+
+    x = p("test %(test me) -8.2F", True)["test me"]
+    test_eq(x.get("name"), 'test me')
+    test_eq(x.get("type"), 'f')
+    test_eq(x.get("flags"), ' -')
+    test_eq(x.get("width"), '8')
+    test_eq(x.get("prec"), '2')
+    test_eq(x.get("len"), '')
+    test_eq(x.get("is_width"), '')
+    test_eq(x.get("compat"), 'f')
+    test_eq(x.get("compat_list"), ['f'])
+
+    test_eq(p("test %d"), ["/f"])
+    test_eq(p("test %g"), ["/f"])
+    test_eq(p("test %x"), ["/f"])
+    test_eq(p("test %d %s"), ["/f", "/s"])
+    test_eq(p("test %*d %s"), ["/f", "/*", "/s"])
+    test_eq(p(" %(*)g"), ["*/f"])
+    test_eq(p(" %(abc)d"), ["abc/f"])
+    test_eq(p(" %(abc)d %(x)s"), ["abc/f", "x/s"])
+    test_eq(p(" %(x)s %(abc)d"), ["abc/f", "x/s"])
+    test_eq(p(" %(x)s %(abc)d %%%(x)-06.3f"), ["abc/f", "x/fs"])
+    test_eq(p(" %(x)s %(x)d %(x)f %(x)s %(x)c %(x)x"), ["x/cfs"])
+
+    assert(match("", "test"))
+    assert(match("whatever %%", "test"))
+    assert(match("Hi, %s", "Hello, %20s"))
+    assert(match("Add %g", "add %6.2f"))
+    assert(match("%(x)g", "%(x)f"))
+    assert(match("%(x)g %(x)8.1f %(x)-6d %(x)u", "%(x)d"))
+
+    assert(not match("Hi, %d", "Hello, %20s"))
+    assert(not match("%c", "%s"))
+    assert(not match("%d", "%s"))
+    assert(not match("%f", "%f%f"))
+    assert(not match("%(x)f", "%(a)f"))
+    assert(not match("%(x)f", "%(a)f %(x)f"))
 
 
 def run_update_translation_strings_test():
     english = { 1: "a test", 2: "catastrophy", 3: "welcome %s!", 5: "%d users online", 6: "" }
-    german = { 1: "ein Test", 2: "Katastrophe", 3: "Willkommen, %s!", 4: "Nichts", 5: "%s Nutzer online" }
+    german = { 1: "ein Test", 2: "Katastrophe", 3: "Willkommen, %s!", 4: "Nichts", 5: "%u Nutzer online" }
 
     _ = update_translation_strings(english, german, use_translated=True, silent=True)
-    test_eq(german, { 1: "ein Test", 2: "Katastrophe", 3: "Willkommen, %s!", 5: "%s Nutzer online", 6: "" })
+    test_eq(german, { 1: "ein Test", 2: "Katastrophe", 3: "Willkommen, %s!", 5: "%u Nutzer online", 6: "" })
     assert(_("a test") == "ein Test")
     assert(_("catastrophy") == "Katastrophe")
     assert(_("welcome %s!") == "Willkommen, %s!")
-    assert(_("%d users online") == "%s Nutzer online")
+    assert(_("%d users online") == "%u Nutzer online")
     assert(_("missing") == "missing")
     old = _
 
@@ -378,7 +449,7 @@ def run_update_translation_strings_test():
     assert(old("a test") == "ein Test")
     assert(old("catastrophy") == "Katastrophe")
     assert(old("welcome %s!") == "Willkommen, %s!")
-    assert(old("%d users online") == "%s Nutzer online")
+    assert(old("%d users online") == "%u Nutzer online")
     assert(old("missing") == "missing")
 
 
