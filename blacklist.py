@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.0.3
+# Blacklist 1.2.0.4
 # © 2010-2016 RoLex
 # Thanks to Frog
 
@@ -51,18 +51,20 @@
 # 1.2.0.1 - Added "listact" command to set list block action
 # 1.2.0.1 - Added "action_proxy" configuration to set public proxy detection block action
 # 1.2.0.1 - Added "action_mylist" configuration to set my list item detection block action
+# 1.2.0.4 - Added "nick_bot" configuration to register bot for sending notifications
 # -------
 
 import vh, re, urllib2, urlparse, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, operator, random, json, ConfigParser
 
 bl_defs = {
-	"version": "1.2.0.3", # todo: dont forget to update
+	"version": "1.2.0.4", # todo: dont forget to update
 	"curlver": ["curl", "-V"],
 	"curlreq": "curl -G -L --max-redirs %s --retry %s --connect-timeout %s -m %s --interface %s -A \"%s\" -e \"%s\" -s -o \"%s\" \"%s\" &",
 	"google": "http://ajax.googleapis.com/ajax/services/search/web?v=1.0&userip=%s&rsz=8&q=proxy%%20OR%%20socks%%20%%22%s%%3a1..65535%%22",
 	"userip": "http://www.te-home.net/?do=tools&action=whatismyip",
 	"referer": ["https://github.com/verlihub/python/", []],
 	"useragent": ["Blacklist/%s", None],
+	"botdesc": "Blacklist %s",
 	"datadir": os.path.join (vh.basedir, "blackdata"),
 	"timersec": 60,
 	"delwait": 60,
@@ -254,10 +256,12 @@ bl_lang = {
 	181: "Block action on public proxy detections",
 	182: "Block action on my list item detections",
 	183: "Notified connections: %s",
-	184: "Blacklisted login exception from %s with IP %s.%s: %s"
+	184: "Blacklisted login exception from %s with IP %s.%s: %s",
+	185: "Bot nick to register and send notifications"
 }
 
 bl_conf = {
+	"nick_bot": ["", "str", 0, 255, "Bot nick to register and send notifications"],
 	"nick_feed": ["", "str", 0, 255, "User nick to receive all feed messages"],
 	"code_block": ["", "str", 0, 255, "Space separated country codes to block"],
 	"code_except": ["", "str", 0, 255, "Space separated country codes to except"],
@@ -397,6 +401,9 @@ def bl_main ():
 	if sql and rows:
 		for item in rows:
 			bl_exli.append ([int (item [0]), int (item [1]), bl_getlang ("Exception") if item [2] == "NULL" else item [2]])
+
+	if len (bl_conf ["nick_bot"][0]):
+		bl_addbot (bl_conf ["nick_bot"][0])
 
 	out += " [*] %s: %s\r\n" % (bl_getlang ("Exception"), str (len (rows)))
 
@@ -816,7 +823,16 @@ def bl_setconf (name, value, update = True):
 			return bl_getlang ("Value too long")
 
 	if update:
-		if name == "prox_lookup":
+		if name == "nick_bot":
+			if len (new) and not len (old):
+				bl_addbot (new)
+			elif not len (new) and len (old):
+				bl_delbot (old)
+			elif new != old:
+				bl_delbot (old)
+				bl_addbot (new)
+
+		elif name == "prox_lookup":
 			if new and not old:
 				res = bl_curlver ()
 
@@ -850,6 +866,7 @@ def bl_setconf (name, value, update = True):
 				bl_makedir (bl_defs ["datadir"])
 				del bl_defs ["referer"][1][:]
 				bl_defs ["useragent"][1] = None
+
 		elif name == "prox_userip":
 			if not bl_validaddr (new):
 				bl_setconf ("prox_lookup", "0")
@@ -932,8 +949,25 @@ def bl_notify (data):
 
 	if len (bl_conf ["nick_feed"][0]):
 		vh.SendDataToUser ("$To: %s From: %s $<%s> %s|" % (bl_conf ["nick_feed"][0], vh.opchatname, vh.opchatname, bl_repnmdc (data)), bl_conf ["nick_feed"][0])
+	elif len (bl_conf ["nick_bot"][0]):
+		vh.SendPMToAll (bl_repnmdc (data), bl_conf ["nick_bot"][0], bl_conf ["class_feed"][0], 10)
 	else:
 		vh.SendPMToAll (bl_repnmdc (data), vh.opchatname, bl_conf ["class_feed"][0], 10)
+
+def bl_addbot (nick):
+	global bl_defs, bl_conf
+	vh.AddRobot (nick, bl_conf ["class_feed"][0], bl_defs ["botdesc"] % bl_defs ["version"], "", "", "0")
+
+def bl_delbot (nick):
+	vh.DelRobot (nick)
+
+def OnUnLoad (code):
+	global bl_conf
+
+	if len (bl_conf ["nick_bot"][0]):
+		bl_delbot (bl_conf ["nick_bot"][0])
+
+	return 1
 
 def OnNewConn (addr):
 	global bl_conf, bl_stat, bl_item, bl_myli
