@@ -956,7 +956,7 @@ def bl_notify (data):
 
 def bl_addbot (nick):
 	global bl_defs, bl_conf
-	vh.AddRobot (nick, bl_conf ["class_feed"][0], bl_defs ["botdesc"] % (bl_defs ["version"], bl_defs ["version"]), "", "", "0")
+	vh.AddRobot (nick, bl_conf ["class_feed"][0], bl_defs ["botdesc"] % (bl_defs ["version"], bl_defs ["version"]), chr (1), "", "0")
 
 def bl_delbot (nick):
 	vh.DelRobot (nick)
