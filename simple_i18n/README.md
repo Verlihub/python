@@ -7,23 +7,26 @@ The solution involves creating a dictionary where all strings that are to be tra
 
 Since many scripts would need similar functionality to handle the translations, a special Python module (translation_helper.py) was written to ease the task. It checks that the translated format strings use the same conversion specifiers (%s, %d, %(name)s and similar), so you don't have to worry about script crashing because of that. If the strings don't match, the English default will be used. In your script you will need to import the `update_translation_strings` functions from the `translation_helper` module, and define the untranslated strings in a dictionary, like this:
 
-    from translation_helper import update_translation_strings
-    
-    english_strings = {
-        0: "",  # We do not use the zeroth string, so that text file approach also works
-        1: "Script %s is ready.",
-        2: "Sorry, but I speak only %s.",
-        3: "OK, English now!",
-        4: "I'm shutting down...",
-    }
+```py
+from translation_helper import update_translation_strings
+
+english_strings = {
+    0: "",  # We do not use the zeroth string, so that text file approach also works
+    1: "Script %s is ready.",
+    2: "Sorry, but I speak only %s.",
+    3: "OK, English now!",
+    4: "I'm shutting down...",
+}
+```
 
 Then, to load the translated strings from the database table (which will be created, if it didn't exist before, and populated), and use them, all you need to do is write this:
 
-    #.py
-    _ = update_translation_strings(english_strings, db_table="my_translations")
-    
-    print _("Script %s is ready.") % "test.py"
-    print _("I'm shutting down...")
+```py
+_ = update_translation_strings(english_strings, db_table="my_translations")
+
+print _("Script %s is ready.") % "test.py"
+print _("I'm shutting down...")
+```
 
 After running this, if the translation table did not exist, it will be created and look like this:
 
@@ -50,11 +53,11 @@ Or, instead of using the database, you could load the strings from a text file, 
 You could load it and use like this:
 
 ```py
-    with open("my_translations.txt") as f:
-        data = [x.replace('\\n', '\n').replace('\\r', '\r') for x in f.readlines()]
-        translations = dict([(i+1, x) for i, x in enumerate(data)])
+with open("my_translations.txt") as f:
+    data = [x.replace('\\n', '\n').replace('\\r', '\r') for x in f.readlines()]
+    translations = dict([(i+1, x) for i, x in enumerate(data)])
 
-    _ = update_translation_strings(english_strings, translations, use_translated=True)
+_ = update_translation_strings(english_strings, translations, use_translated=True)
 ```
 
 and afterwards you can print the strings in the same way as you would with strings loaded from the database. Please note that there is a `\n` in the second line in the translations file to denote a newline, because we obviously could not split the string into two lines. Therefore we had to use `replace('\\n', '\n')` to convert all escaped newlines into real newlines (and we did the same for carriage return, `\r`).
