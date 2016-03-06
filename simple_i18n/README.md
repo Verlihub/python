@@ -1,7 +1,7 @@
 Simple Internationalization
 ===========================
 
-Internationalization (i18n) is a broad subject, but at the very basic you would want to be able to make the script you installed print messages in the language of your choice. The preferable way to do this is the one that doesn't require you to change the script when you add a new language. Gettext is the obvious choice, but it requires some work: extracting strings, compiling POT files, finding them. Therefore a simpler solution is proposed here.
+Internationalization (i18n) is a broad subject, but at the very least you would want to be able to make the script you installed print messages in the language of your choice. The preferable way to do this is the one that doesn't require you to change the script when you add a new language. Gettext is the obvious choice, but it requires some work: extracting strings, compiling POT files, finding them. Therefore a simpler solution is proposed here.
 
 The solution involves creating a dictionary where all strings that are to be translated are given their unique numbers and using a database table to store those strings with their IDs (if they aren't already present in the database) and retrieve them. Then someone else can dump the database table, replace the strings with their translations, and import the new table to the database.
 
@@ -19,6 +19,7 @@ Since many scripts would need similar functionality to handle the translations, 
 
 Then, to load the translated strings from the database table (which will be created, if it didn't exist before, and populated), and use them, all you need to do is write this:
 
+    #.py
     _ = update_translation_strings(english_strings, db_table="my_translations")
     
     print _("Script %s is ready.") % "test.py"
@@ -48,13 +49,15 @@ Or, instead of using the database, you could load the strings from a text file, 
 
 You could load it and use like this:
 
+```py
     with open("my_translations.txt") as f:
         data = [x.replace('\\n', '\n').replace('\\r', '\r') for x in f.readlines()]
         translations = dict([(i+1, x) for i, x in enumerate(data)])
 
     _ = update_translation_strings(english_strings, translations, use_translated=True)
+```
 
-and afterwards you can print the strings in the same way, as you would with strings loaded from the database. Please note that there is a `\n` in the second line in the translations file to denote a newline, because we obviously could not split the string into two lines. Therefore we had to use `replace('\\n', '\n')` to convert all escaped newlines into real newlines (and we did the same for carriage return, `\r`).
+and afterwards you can print the strings in the same way as you would with strings loaded from the database. Please note that there is a `\n` in the second line in the translations file to denote a newline, because we obviously could not split the string into two lines. Therefore we had to use `replace('\\n', '\n')` to convert all escaped newlines into real newlines (and we did the same for carriage return, `\r`).
 
 As the script grows it can be hard to track if all the `_("string")` in the file match the strings present in the translation dictionary (`english_strings` in this example). The translation_check.py script can help you with that. For example, to check the translation_example.py script, you would use the command:
 
