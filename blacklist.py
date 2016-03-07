@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.0.4
+# Blacklist 1.2.0.5
 # © 2010-2016 RoLex
 # Thanks to Frog
 
@@ -52,19 +52,20 @@
 # 1.2.0.1 - Added "action_proxy" configuration to set public proxy detection block action
 # 1.2.0.1 - Added "action_mylist" configuration to set my list item detection block action
 # 1.2.0.4 - Added "nick_bot" configuration to register bot for sending notifications
+# 1.2.0.5 - Added "extry" command to search for IP address in exception list
 # -------
 
 import vh, re, urllib2, urlparse, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, operator, random, json, ConfigParser
 
 bl_defs = {
-	"version": "1.2.0.4", # todo: dont forget to update
+	"version": "1.2.0.5", # todo: dont forget to update
 	"curlver": ["curl", "-V"],
 	"curlreq": "curl -G -L --max-redirs %s --retry %s --connect-timeout %s -m %s --interface %s -A \"%s\" -e \"%s\" -s -o \"%s\" \"%s\" &",
 	"google": "http://ajax.googleapis.com/ajax/services/search/web?v=1.0&userip=%s&rsz=8&q=proxy%%20OR%%20socks%%20%%22%s%%3a1..65535%%22",
 	"userip": "http://www.te-home.net/?do=tools&action=whatismyip",
 	"referer": ["https://github.com/verlihub/python/", []],
 	"useragent": ["Blacklist/%s", None],
-	"botdesc": "Blacklist %s<Blacklist V:%s,M:A,H:0/0/1,S:0>",
+	"botdesc": "<Blacklist V:%s,M:A,H:0/0/1,S:0>",
 	"datadir": os.path.join (vh.basedir, "blackdata"),
 	"timersec": 60,
 	"delwait": 60,
@@ -257,7 +258,8 @@ bl_lang = {
 	182: "Block action on my list item detections",
 	183: "Notified connections: %s",
 	184: "Blacklisted login exception from %s with IP %s.%s: %s",
-	185: "Bot nick to register and send notifications"
+	185: "Bot nick to register and send notifications",
+	186: "Search in exceptions"
 }
 
 bl_conf = {
@@ -381,11 +383,14 @@ def bl_main ():
 		for item in rows:
 			bl_setconf (item [0], item [1], False)
 
-	sql, rows = vh.SQL ("select * from `py_bl_list` order by `off` asc, `action` desc", 100) # todo: dont forget about limit
+	sql, rows = vh.SQL ("select * from `py_bl_list` order by `off` asc, `action` desc, `title` asc", 100) # todo: dont forget about limit
 
 	if sql and rows:
 		for item in rows:
 			bl_list.append ([item [0], item [1], item [2], int (item [3]), int (item [4]), int (item [5]), 0])
+
+	if bl_conf ["nick_bot"][0]:
+		bl_addbot (bl_conf ["nick_bot"][0])
 
 	out = (bl_getlang ("Blacklist %s startup") + ":\r\n\r\n") % bl_defs ["version"]
 	out += bl_reload ()
@@ -401,9 +406,6 @@ def bl_main ():
 	if sql and rows:
 		for item in rows:
 			bl_exli.append ([int (item [0]), int (item [1]), bl_getlang ("Exception") if item [2] == "NULL" else item [2]])
-
-	if len (bl_conf ["nick_bot"][0]):
-		bl_addbot (bl_conf ["nick_bot"][0])
 
 	out += " [*] %s: %s\r\n" % (bl_getlang ("Exception"), str (len (rows)))
 
@@ -581,13 +583,13 @@ def bl_lookup (data, addr):
 	find, finds, ports = re.compile (re.escape (addr) + "\\:(\\d{1,5})"), 0, {}
 
 	for item in list ["responseData"]["results"]:
-		if bl_conf ["prox_lookup"][0] and "url" in item and len (item ["url"]):
+		if bl_conf ["prox_lookup"][0] and "url" in item and item ["url"]:
 			part = urlparse.urlsplit (item ["url"])
 
-			if part and len (part [0]) and len (part [1]):
+			if part and part [0] and part [1]:
 				url = str (part [0].lower () + "://" + part [1].lower () + "/")
 
-				if len (url) and not url in bl_defs ["referer"][1]:
+				if not url in bl_defs ["referer"][1]:
 					bl_defs ["referer"][1].append (url)
 
 					if len (bl_defs ["referer"][1]) >= 100:
@@ -728,7 +730,7 @@ def bl_makedir (dir):
 def bl_excheck (addr, intaddr, code, name, nick = None):
 	global bl_conf, bl_stat, bl_exli
 
-	if len (bl_conf ["code_except"][0]) and len (code) and str ().join ([" ", code, " "]) in str ().join ([" ", bl_conf ["code_except"][0], " "]):
+	if bl_conf ["code_except"][0] and code and str ().join ([" ", code, " "]) in str ().join ([" ", bl_conf ["code_except"][0], " "]):
 		if bl_waitfeed (addr):
 			if nick:
 				bl_notify ((bl_getlang ("Blacklisted login exception from %s with IP %s.%s: %s") + " | %s") % (nick, addr, code, name, bl_getlang ("Excepted country")))
@@ -824,9 +826,9 @@ def bl_setconf (name, value, update = True):
 
 	if update:
 		if name == "nick_bot":
-			if len (new) and not len (old):
+			if new and not old:
 				bl_addbot (new)
-			elif not len (new) and len (old):
+			elif not new and old:
 				bl_delbot (old)
 			elif new != old:
 				bl_delbot (old)
@@ -947,16 +949,16 @@ def bl_reply (user, data):
 def bl_notify (data):
 	global bl_conf
 
-	if len (bl_conf ["nick_feed"][0]):
+	if bl_conf ["nick_feed"][0]:
 		vh.SendDataToUser ("$To: %s From: %s $<%s> %s|" % (bl_conf ["nick_feed"][0], vh.opchatname, vh.opchatname, bl_repnmdc (data)), bl_conf ["nick_feed"][0])
-	elif len (bl_conf ["nick_bot"][0]):
+	elif bl_conf ["nick_bot"][0]:
 		vh.SendPMToAll (bl_repnmdc (data), bl_conf ["nick_bot"][0], bl_conf ["class_feed"][0], 10)
 	else:
 		vh.SendPMToAll (bl_repnmdc (data), vh.opchatname, bl_conf ["class_feed"][0], 10)
 
 def bl_addbot (nick):
 	global bl_defs, bl_conf
-	vh.AddRobot (nick, bl_conf ["class_feed"][0], bl_defs ["botdesc"] % (bl_defs ["version"], bl_defs ["version"]), chr (1), "", "0")
+	vh.AddRobot (nick, bl_conf ["class_feed"][0], bl_defs ["botdesc"] % bl_defs ["version"], chr (1), "", "0")
 
 def bl_delbot (nick):
 	vh.DelRobot (nick)
@@ -964,7 +966,7 @@ def bl_delbot (nick):
 def UnLoad ():
 	global bl_conf
 
-	if len (bl_conf ["nick_bot"][0]):
+	if bl_conf ["nick_bot"][0]:
 		bl_delbot (bl_conf ["nick_bot"][0])
 
 	return 1
@@ -974,7 +976,7 @@ def OnNewConn (addr):
 	bl_stat ["connect"] += 1
 	code = vh.GetIPCC (addr)
 
-	if len (bl_conf ["code_block"][0]) and len (code) and str ().join ([" ", code, " "]) in str ().join ([" ", bl_conf ["code_block"][0], " "]):
+	if bl_conf ["code_block"][0] and code and str ().join ([" ", code, " "]) in str ().join ([" ", bl_conf ["code_block"][0], " "]):
 		if bl_waitfeed (addr):
 			bl_notify (bl_getlang ("Blocking blacklisted connection from %s.%s: %s") % (addr, code, bl_getlang ("Blocked country")))
 
@@ -1018,7 +1020,7 @@ def OnUserLogin (nick):
 
 	addr = vh.GetUserIP (nick)
 
-	if not len (addr):
+	if not addr:
 		return 1
 
 	code = vh.GetUserCC (nick)
@@ -1203,7 +1205,7 @@ def OnOperatorCommand (user, data):
 		if data [4:10] == "listre":
 			out = bl_reload ()
 
-			if len (out):
+			if out:
 				out = bl_getlang ("Reload results") + ":\r\n\r\n" + out
 			else:
 				out = bl_getlang ("Blacklist list is empty.")
@@ -1250,7 +1252,7 @@ def OnOperatorCommand (user, data):
 				bl_reply (user, bl_getlang ("Missing command parameters: %s") % ("look <" + bl_getlang ("addr") + ">"))
 				return 0
 
-			if not len (bl_conf ["prox_userip"][0]):
+			if not bl_conf ["prox_userip"][0]:
 				bl_reply (user, bl_getlang ("Missing user IP."))
 				return 0
 
@@ -1682,6 +1684,29 @@ def OnOperatorCommand (user, data):
 
 			return 0
 
+		if data [4:9] == "extry":
+			if not data [10:] or not bl_validaddr (data [10:]):
+				bl_reply (user, bl_getlang ("Missing command parameters: %s") % ("extry <" + bl_getlang ("addr") + ">"))
+				return 0
+
+			out, size = "", 0
+			intaddr = bl_addrtoint (data [10:])
+
+			for item in bl_exli:
+				if intaddr >= item [0] and intaddr <= item [1]:
+					out += " %s - %s : %s\r\n" % (bl_inttoaddr (item [0]), bl_inttoaddr (item [1]), item [2])
+					size += 1
+
+					if size >= bl_conf ["find_maxres"][0]:
+						break
+
+			if size:
+				bl_reply (user, (bl_getlang ("Results for IP: %s") + "\r\n\r\n%s") % (data [10:], out))
+			else:
+				bl_reply (user, bl_getlang ("No results for IP: %s") % data [10:])
+
+			return 0
+
 		if data [4:8] == "conf":
 			out = bl_getlang ("Configuration list") + ":\r\n"
 
@@ -1779,7 +1804,8 @@ def OnOperatorCommand (user, data):
 
 		out += " exall\t\t\t\t\t- " + bl_getlang ("Show exception list") + "\r\n"
 		out += " exadd <" + bl_getlang ("addr") + ">-[" + bl_getlang ("range") + "] [" + bl_getlang ("title") + "]\t\t\t- " + bl_getlang ("New exception item") + "\r\n"
-		out += " exdel <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Delete an exception") + "\r\n\r\n"
+		out += " exdel <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Delete an exception") + "\r\n"
+		out += " extry <" + bl_getlang ("addr") + ">\t\t\t\t- " + bl_getlang ("Search in exceptions") + "\r\n\r\n"
 
 		out += " conf\t\t\t\t\t- " + bl_getlang ("Show current configuration") + "\r\n"
 		out += " set <" + bl_getlang ("item") + "> [" + bl_getlang ("value") + "]\t\t\t\t- " + bl_getlang ("Set configuration item") + "\r\n\r\n"
