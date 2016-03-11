@@ -1014,10 +1014,6 @@ def OnNewConn (addr):
 
 def OnUserLogin (nick):
 	global bl_conf, bl_stat, bl_item, bl_prox, bl_myli
-
-	if vh.GetUserClass (nick) >= bl_conf ["class_skip"][0]:
-		return 1
-
 	addr = vh.GetUserIP (nick)
 
 	if not addr:
@@ -1047,7 +1043,7 @@ def OnUserLogin (nick):
 
 			break
 
-	if code == "L1" or code == "P1":
+	if code == "L1" or code == "P1" or vh.GetUserClass (nick) >= bl_conf ["class_skip"][0]:
 		return 1
 
 	now = time.time ()
