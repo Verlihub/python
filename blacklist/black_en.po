@@ -1,0 +1,593 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Ledokol\n"
+"Project-Version: 1.2.1\n"
+"Report-Msgid-Bugs-To: RoLex <webmaster@feardc.net>\n"
+"POT-Creation-Date: 2016-06-14 00:16+0200\n"
+"PO-Revision-Date: 2016-06-14 00:16+0200\n"
+"Last-Translator: RoLex <webmaster@feardc.net>\n"
+"Language-Team: RoLex <webmaster@feardc.net>\n"
+"Language: en_GB\n"
+"Plural-Forms: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Blacklist %s startup"
+msgstr ""
+
+msgid "Exception"
+msgstr ""
+
+msgid "Failed with HTTP error"
+msgstr ""
+
+msgid "Failed with URL error"
+msgstr ""
+
+msgid "Failed with unknown error"
+msgstr ""
+
+msgid "Failed to compile pattern"
+msgstr ""
+
+msgid "File is not compressed with GZIP"
+msgstr ""
+
+msgid "Failed to read data"
+msgstr ""
+
+msgid "%s items loaded"
+msgstr ""
+
+msgid "Unknown list type"
+msgstr ""
+
+msgid "Failed to open file"
+msgstr ""
+
+msgid "My list"
+msgstr ""
+
+msgid "Value too low"
+msgstr ""
+
+msgid "Value too high"
+msgstr ""
+
+msgid "Value is not a number"
+msgstr ""
+
+msgid "Value too short"
+msgstr ""
+
+msgid "Value too long"
+msgstr ""
+
+msgid "Item not found"
+msgstr ""
+
+msgid "Blacklisted connection exception from %s.%s: %s"
+msgstr ""
+
+msgid "Blocking blacklisted connection from %s.%s: %s"
+msgstr ""
+
+msgid "You don't have access to this command."
+msgstr ""
+
+msgid "Blacklist statistics"
+msgstr ""
+
+msgid "Version: %s"
+msgstr ""
+
+msgid "Loaded lists: %s"
+msgstr ""
+
+msgid "Blacklisted items: %s"
+msgstr ""
+
+msgid "Excepted items: %s"
+msgstr ""
+
+msgid "Blocked connections: %s"
+msgstr ""
+
+msgid "Excepted connections: %s"
+msgstr ""
+
+msgid "Total connections: %s"
+msgstr ""
+
+msgid "Missing command parameters: %s"
+msgstr ""
+
+msgid "Results for IP: %s"
+msgstr ""
+
+msgid "No results for IP: %s"
+msgstr ""
+
+msgid "Results for title: %s"
+msgstr ""
+
+msgid "No results for title: %s"
+msgstr ""
+
+msgid "Blacklist list is empty."
+msgstr ""
+
+msgid "Blacklist list"
+msgstr ""
+
+msgid "ID: %s"
+msgstr ""
+
+msgid "List: %s"
+msgstr ""
+
+msgid "Type: %s"
+msgstr ""
+
+msgid "Title: %s"
+msgstr ""
+
+msgid "Update: %s"
+msgstr ""
+
+msgid "On load"
+msgstr ""
+
+msgid "%s minute"
+msgstr ""
+
+msgid "%s minutes"
+msgstr ""
+
+msgid "Disabled: %s"
+msgstr ""
+
+msgid "No"
+msgstr ""
+
+msgid "Yes"
+msgstr ""
+
+msgid "Type must be one of: %s"
+msgstr ""
+
+msgid "Update must be in range: %s - %s"
+msgstr ""
+
+msgid "Item already in list"
+msgstr ""
+
+msgid "Item added to list"
+msgstr ""
+
+msgid "Status: %s"
+msgstr ""
+
+msgid "Item deleted from list"
+msgstr ""
+
+msgid "List out of item with ID: %s"
+msgstr ""
+
+msgid "Item now disabled"
+msgstr ""
+
+msgid "Item now enabled"
+msgstr ""
+
+msgid "Exception list is empty."
+msgstr ""
+
+msgid "Exception list"
+msgstr ""
+
+msgid "Lower IP: %s"
+msgstr ""
+
+msgid "Higher IP: %s"
+msgstr ""
+
+msgid "Lower IP not valid: %s"
+msgstr ""
+
+msgid "Higher IP not valid: %s"
+msgstr ""
+
+msgid "Configuration list"
+msgstr ""
+
+msgid "Name: %s"
+msgstr ""
+
+msgid "Range: %s - %s"
+msgstr ""
+
+msgid "Value: %s"
+msgstr ""
+
+msgid "Item configuration"
+msgstr ""
+
+msgid "Old value: %s"
+msgstr ""
+
+msgid "New value: %s"
+msgstr ""
+
+msgid "Waiting feed list is empty."
+msgstr ""
+
+msgid "Waiting feed list"
+msgstr ""
+
+msgid "IP: %s.%s"
+msgstr ""
+
+msgid "Expires: %s"
+msgstr ""
+
+msgid "Blacklist usage"
+msgstr ""
+
+msgid "Script statistics"
+msgstr ""
+
+msgid "Search in loaded lists"
+msgstr ""
+
+msgid "Show all lists"
+msgstr ""
+
+msgid "Load new list"
+msgstr ""
+
+msgid "Disable or enable list"
+msgstr ""
+
+msgid "Delete existing list"
+msgstr ""
+
+msgid "Show exception list"
+msgstr ""
+
+msgid "New exception item"
+msgstr ""
+
+msgid "Delete an exception"
+msgstr ""
+
+msgid "Show current configuration"
+msgstr ""
+
+msgid "Set configuration item"
+msgstr ""
+
+msgid "Show waiting feed list"
+msgstr ""
+
+msgid "value"
+msgstr ""
+
+msgid "item"
+msgstr ""
+
+msgid "id"
+msgstr ""
+
+msgid "addr"
+msgstr ""
+
+msgid "range"
+msgstr ""
+
+msgid "title"
+msgstr ""
+
+msgid "list"
+msgstr ""
+
+msgid "type"
+msgstr ""
+
+msgid "update"
+msgstr ""
+
+msgid "None"
+msgstr ""
+
+msgid "Set translation string"
+msgstr ""
+
+msgid "Show current translation"
+msgstr ""
+
+msgid "Translation list"
+msgstr ""
+
+msgid "Updated translation with ID: %s"
+msgstr ""
+
+msgid "Parameter count mismatch in translation with ID: %s"
+msgstr ""
+
+msgid "File is not compressed with ZIP"
+msgstr ""
+
+msgid "Force load of existing list"
+msgstr ""
+
+msgid "Item is disabled: %s"
+msgstr ""
+
+msgid "Item load result"
+msgstr ""
+
+msgid "Failed to load JSON"
+msgstr ""
+
+msgid "Failed to parse JSON"
+msgstr ""
+
+msgid "Failed to get status"
+msgstr ""
+
+msgid "Unexpected status: %s"
+msgstr ""
+
+msgid "Failed to get results"
+msgstr ""
+
+msgid "Failed to open URL"
+msgstr ""
+
+msgid "Failed to get search data"
+msgstr ""
+
+msgid "Failed to read INI"
+msgstr ""
+
+msgid "Failed to create file"
+msgstr ""
+
+msgid "Failed to get IP"
+msgstr ""
+
+msgid "User IP: %s"
+msgstr ""
+
+msgid "Public proxy lookup"
+msgstr ""
+
+msgid "Missing user IP."
+msgstr ""
+
+msgid "Not enough matches for %s.%s: %s of %s"
+msgstr ""
+
+msgid "Public proxy detected: %s:%s.%s"
+msgstr ""
+
+msgid "Failed proxy detection for %s.%s: %s"
+msgstr ""
+
+msgid "Delete blacklisted item"
+msgstr ""
+
+msgid "List out of item with range: %s - %s"
+msgstr ""
+
+msgid "Data directory: %s"
+msgstr ""
+
+msgid "Failed to create directory"
+msgstr ""
+
+msgid "Failed to execute command"
+msgstr ""
+
+msgid "Public proxy"
+msgstr ""
+
+msgid "Show waiting proxy lookups"
+msgstr ""
+
+msgid "Waiting proxy lookup list is empty."
+msgstr ""
+
+msgid "Waiting proxy lookups"
+msgstr ""
+
+msgid "Time: %s"
+msgstr ""
+
+msgid "Users: %s"
+msgstr ""
+
+msgid "Feature is disabled."
+msgstr ""
+
+msgid "Total: %s"
+msgstr ""
+
+msgid "Queued"
+msgstr ""
+
+msgid "Waiting"
+msgstr ""
+
+msgid "Failed to get version"
+msgstr ""
+
+msgid "%s version: %s"
+msgstr ""
+
+msgid "%s of %s"
+msgstr ""
+
+msgid "Done"
+msgstr ""
+
+msgid "My list is empty."
+msgstr ""
+
+msgid "Reload all lists"
+msgstr ""
+
+msgid "My item"
+msgstr ""
+
+msgid "Reload results"
+msgstr ""
+
+msgid "Show my list"
+msgstr ""
+
+msgid "New my item"
+msgstr ""
+
+msgid "Delete my item"
+msgstr ""
+
+msgid "My items: %s"
+msgstr ""
+
+msgid "Excepted country"
+msgstr ""
+
+msgid "Blocked country"
+msgstr ""
+
+msgid "User nick to receive all feed messages"
+msgstr ""
+
+msgid "Space separated country codes to block"
+msgstr ""
+
+msgid "Space separated country codes to except"
+msgstr ""
+
+msgid "Minimal class to receive feed messages"
+msgstr ""
+
+msgid "Minimal class to access script commands"
+msgstr ""
+
+msgid "Minimal class to skip public proxy lookup"
+msgstr ""
+
+msgid "Minutes to delay same IP notifications"
+msgstr ""
+
+msgid "Download operation timeout in seconds"
+msgstr ""
+
+msgid "Enable blacklist list update notification"
+msgstr ""
+
+msgid "Maximum number of blacklist search results"
+msgstr ""
+
+msgid "Enable public proxy lookup on user login"
+msgstr ""
+
+msgid "Own IP required for public proxy lookup"
+msgstr ""
+
+msgid "Minimal number of public proxy matches"
+msgstr ""
+
+msgid "Minutes to wait after hub is started"
+msgstr ""
+
+msgid "Seconds to process proxy lookup queue"
+msgstr ""
+
+msgid "Maximum number of proxy lookups to enqueue"
+msgstr ""
+
+msgid "Maximum number of proxy lookups to send"
+msgstr ""
+
+msgid "Explanation: %s"
+msgstr ""
+
+msgid "Disable proxy lookup failure notifications"
+msgstr ""
+
+msgid "Level of proxy lookup debug information"
+msgstr ""
+
+msgid "User agent: %s"
+msgstr ""
+
+msgid "New referer: %s"
+msgstr ""
+
+msgid "Set list block action"
+msgstr ""
+
+msgid "Item now set to block"
+msgstr ""
+
+msgid "Item now set to notify"
+msgstr ""
+
+msgid "Action: %s"
+msgstr ""
+
+msgid "Block"
+msgstr ""
+
+msgid "Notify"
+msgstr ""
+
+msgid "Blocking blacklisted login from %s with IP %s.%s: %s"
+msgstr ""
+
+msgid "Notifying blacklisted connection from %s.%s: %s"
+msgstr ""
+
+msgid "Notifying blacklisted login from %s with IP %s.%s: %s"
+msgstr ""
+
+msgid "Block action on public proxy detections"
+msgstr ""
+
+msgid "Block action on my list item detections"
+msgstr ""
+
+msgid "Notified connections: %s"
+msgstr ""
+
+msgid "Blacklisted login exception from %s with IP %s.%s: %s"
+msgstr ""
+
+msgid "Bot nick to register and send notifications"
+msgstr ""
+
+msgid "Search in exceptions"
+msgstr ""
+
+msgid "Except: %s"
+msgstr ""
+
+msgid "Item exception now disabled"
+msgstr ""
+
+msgid "Item exception now enabled"
+msgstr ""
+
+msgid "Set list exception usage"
+msgstr ""
+
+msgid "Exception usage on public proxy detections"
+msgstr ""
+
+msgid "Exception usage on my list item detections"
+msgstr ""
