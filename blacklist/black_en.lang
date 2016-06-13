@@ -1,0 +1,199 @@
+# Language: en_GB
+# Charset: CP1252
+# Version: 1.2.1
+# Author: RoLex
+# Email: webmaster@feardc.net
+
+Blacklist %s startup|
+Exception|
+Failed with HTTP error|
+Failed with URL error|
+Failed with unknown error|
+Failed to compile pattern|
+File is not compressed with GZIP|
+Failed to read data|
+%s items loaded|
+Unknown list type|
+Failed to open file|
+My list|
+Value too low|
+Value too high|
+Value is not a number|
+Value too short|
+Value too long|
+Item not found|
+Blacklisted connection exception from %s.%s: %s|
+Blocking blacklisted connection from %s.%s: %s|
+You don't have access to this command.|
+Blacklist statistics|
+Version: %s|
+Loaded lists: %s|
+Blacklisted items: %s|
+Excepted items: %s|
+Blocked connections: %s|
+Excepted connections: %s|
+Total connections: %s|
+Missing command parameters: %s|
+Results for IP: %s|
+No results for IP: %s|
+Results for title: %s|
+No results for title: %s|
+Blacklist list is empty.|
+Blacklist list|
+ID: %s|
+List: %s|
+Type: %s|
+Title: %s|
+Update: %s|
+On load|
+%s minute|
+%s minutes|
+Disabled: %s|
+No|
+Yes|
+Type must be one of: %s|
+Update must be in range: %s - %s|
+Item already in list|
+Item added to list|
+Status: %s|
+Item deleted from list|
+List out of item with ID: %s|
+Item now disabled|
+Item now enabled|
+Exception list is empty.|
+Exception list|
+Lower IP: %s|
+Higher IP: %s|
+Lower IP not valid: %s|
+Higher IP not valid: %s|
+Configuration list|
+Name: %s|
+Range: %s - %s|
+Value: %s|
+Item configuration|
+Old value: %s|
+New value: %s|
+Waiting feed list is empty.|
+Waiting feed list|
+IP: %s.%s|
+Expires: %s|
+Blacklist usage|
+Script statistics|
+Search in loaded lists|
+Show all lists|
+Load new list|
+Disable or enable list|
+Delete existing list|
+Show exception list|
+New exception item|
+Delete an exception|
+Show current configuration|
+Set configuration item|
+Show waiting feed list|
+value|
+item|
+id|
+addr|
+range|
+title|
+list|
+type|
+update|
+None|
+Set translation string|
+Show current translation|
+Translation list|
+Updated translation with ID: %s|
+Parameter count mismatch in translation with ID: %s|
+File is not compressed with ZIP|
+Force load of existing list|
+Item is disabled: %s|
+Item load result|
+Failed to load JSON|
+Failed to parse JSON|
+Failed to get status|
+Unexpected status: %s|
+Failed to get results|
+Failed to open URL|
+Failed to get search data|
+Failed to read INI|
+Failed to create file|
+Failed to get IP|
+User IP: %s|
+Public proxy lookup|
+Missing user IP.|
+Not enough matches for %s.%s: %s of %s|
+Public proxy detected: %s:%s.%s|
+Failed proxy detection for %s.%s: %s|
+Delete blacklisted item|
+List out of item with range: %s - %s|
+Data directory: %s|
+Failed to create directory|
+Failed to execute command|
+Public proxy|
+Show waiting proxy lookups|
+Waiting proxy lookup list is empty.|
+Waiting proxy lookups|
+Time: %s|
+Users: %s|
+Feature is disabled.|
+Total: %s|
+Queued|
+Waiting|
+Failed to get version|
+%s version: %s|
+%s of %s|
+Done|
+My list is empty.|
+Reload all lists|
+My item|
+Reload results|
+Show my list|
+New my item|
+Delete my item|
+My items: %s|
+Excepted country|
+Blocked country|
+User nick to receive all feed messages|
+Space separated country codes to block|
+Space separated country codes to except|
+Minimal class to receive feed messages|
+Minimal class to access script commands|
+Minimal class to skip public proxy lookup|
+Minutes to delay same IP notifications|
+Download operation timeout in seconds|
+Enable blacklist list update notification|
+Maximum number of blacklist search results|
+Enable public proxy lookup on user login|
+Own IP required for public proxy lookup|
+Minimal number of public proxy matches|
+Minutes to wait after hub is started|
+Seconds to process proxy lookup queue|
+Maximum number of proxy lookups to enqueue|
+Maximum number of proxy lookups to send|
+Explanation: %s|
+Disable proxy lookup failure notifications|
+Level of proxy lookup debug information|
+User agent: %s|
+New referer: %s|
+Set list block action|
+Item now set to block|
+Item now set to notify|
+Action: %s|
+Block|
+Notify|
+Blocking blacklisted login from %s with IP %s.%s: %s|
+Notifying blacklisted connection from %s.%s: %s|
+Notifying blacklisted login from %s with IP %s.%s: %s|
+Block action on public proxy detections|
+Block action on my list item detections|
+Notified connections: %s|
+Blacklisted login exception from %s with IP %s.%s: %s|
+Bot nick to register and send notifications|
+Search in exceptions|
+Except: %s|
+Item exception now disabled|
+Item exception now enabled|
+Set list exception usage|
+Exception usage on public proxy detections|
+Exception usage on my list item detections|
