@@ -1,10 +1,10 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Ledokol\n"
+"Project-Id-Version: Blacklist\n"
 "Project-Version: 1.2.1\n"
 "Report-Msgid-Bugs-To: RoLex <webmaster@feardc.net>\n"
-"POT-Creation-Date: 2016-06-14 00:16+0200\n"
-"PO-Revision-Date: 2016-06-14 00:16+0200\n"
+"POT-Creation-Date: 2016-06-18 22:19+0200\n"
+"PO-Revision-Date: 2016-06-18 22:19+0200\n"
 "Last-Translator: RoLex <webmaster@feardc.net>\n"
 "Language-Team: RoLex <webmaster@feardc.net>\n"
 "Language: en_GB\n"
@@ -590,4 +590,25 @@ msgid "Exception usage on public proxy detections"
 msgstr ""
 
 msgid "Exception usage on my list item detections"
+msgstr ""
+
+msgid "Run exception lookup on notification actions"
+msgstr ""
+
+msgid "Exception list out of IP %s.%s: %s"
+msgstr ""
+
+msgid "Delete from waiting feed list"
+msgstr ""
+
+msgid "Waiting feed list has been cleared."
+msgstr ""
+
+msgid "Bad command parameters: %s"
+msgstr ""
+
+msgid "Waiting feed list item deleted: %s.%s"
+msgstr ""
+
+msgid "Waiting feed list out of item: %s.%s"
 msgstr ""
