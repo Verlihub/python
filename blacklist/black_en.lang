@@ -197,3 +197,10 @@ Item exception now enabled|
 Set list exception usage|
 Exception usage on public proxy detections|
 Exception usage on my list item detections|
+Run exception lookup on notification actions|
+Exception list out of IP %s.%s: %s|
+Delete from waiting feed list|
+Waiting feed list has been cleared.|
+Bad command parameters: %s|
+Waiting feed list item deleted: %s.%s|
+Waiting feed list out of item: %s.%s|
