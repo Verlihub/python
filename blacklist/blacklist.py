@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.1.0
+# Blacklist 1.2.1.1
 # © 2010-2016 RoLex
 # Thanks to Frog
 
@@ -58,12 +58,14 @@
 # 1.2.1.0 - Added "listex" command to disable or enable list exception usage
 # 1.2.1.0 - Added "except_proxy" configuration to set public proxy detection exception usage
 # 1.2.1.0 - Added "except_mylist" configuration to set my list item detection exception usage
+# 1.2.1.1 - Added "action_extry" configuration to run exception lookup on notification actions
+# 1.2.1.1 - Added "feeddel" command to delete items from waiting feed list
 # -------
 
 import vh, re, urllib2, urlparse, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, operator, random, json, ConfigParser
 
 bl_defs = {
-	"version": "1.2.1.0", # todo: dont forget to update
+	"version": "1.2.1.1", # todo: dont forget to update
 	"curlver": ["curl", "-V"],
 	"curlreq": "curl -G -L --max-redirs %s --retry %s --connect-timeout %s -m %s --interface %s -A \"%s\" -e \"%s\" -s -o \"%s\" \"%s\" &",
 	"google": "http://ajax.googleapis.com/ajax/services/search/web?v=1.0&userip=%s&rsz=8&q=proxy%%20OR%%20socks%%20%%22%s%%3a1..65535%%22",
@@ -270,7 +272,14 @@ bl_lang = {
 	189: "Item exception now enabled",
 	190: "Set list exception usage",
 	191: "Exception usage on public proxy detections",
-	192: "Exception usage on my list item detections"
+	192: "Exception usage on my list item detections",
+	193: "Run exception lookup on notification actions",
+	194: "Exception list out of IP %s.%s: %s",
+	195: "Delete from waiting feed list",
+	196: "Waiting feed list has been cleared.",
+	197: "Bad command parameters: %s",
+	198: "Waiting feed list item deleted: %s.%s",
+	199: "Waiting feed list out of item: %s.%s"
 }
 
 bl_conf = {
@@ -297,7 +306,8 @@ bl_conf = {
 	"action_proxy": [1, "int", 0, 1, "Block action on public proxy detections"],
 	"action_mylist": [1, "int", 0, 1, "Block action on my list item detections"],
 	"except_proxy": [1, "int", 0, 1, "Exception usage on public proxy detections"],
-	"except_mylist": [1, "int", 0, 1, "Exception usage on my list item detections"]
+	"except_mylist": [1, "int", 0, 1, "Exception usage on my list item detections"],
+	"action_extry": [0, "int", 0, 1, "Run exception lookup on notification actions"]
 }
 
 bl_stat = {
@@ -743,6 +753,15 @@ def bl_makedir (dir):
 
 	return [True, dir]
 
+def bl_extry (addr, code, intaddr, loaddr, hiaddr):
+	global bl_exli
+
+	for item in bl_exli:
+		if intaddr >= item [0] and intaddr <= item [1]:
+			return
+
+	bl_notify (bl_getlang ("Exception list out of IP %s.%s: %s") % (addr, code, bl_inttoaddr (loaddr) + "-" + bl_inttoaddr (hiaddr)))
+
 def bl_excheck (addr, intaddr, code, name, exuse, nick = None):
 	global bl_conf, bl_stat, bl_exli
 
@@ -1046,6 +1065,9 @@ def OnUserLogin (nick):
 				if bl_waitfeed (addr, True):
 					bl_notify (bl_getlang ("Notifying blacklisted login from %s with IP %s.%s: %s") % (nick, addr, code, item [2]))
 
+					if bl_conf ["action_extry"][0]:
+						bl_extry (addr, code, intaddr, item [0], item [1])
+
 				return 1
 
 			break
@@ -1055,6 +1077,9 @@ def OnUserLogin (nick):
 			if not bl_conf ["action_mylist"][0]:
 				if bl_waitfeed (addr, True):
 					bl_notify (bl_getlang ("Notifying blacklisted login from %s with IP %s.%s: %s") % (nick, addr, code, item [2]))
+
+					if bl_conf ["action_extry"][0]:
+						bl_extry (addr, code, intaddr, item [0], item [1])
 
 				return 1
 
@@ -1157,7 +1182,7 @@ def OnOperatorCommand (user, data):
 			bl_reply (user, out)
 			return 0
 
-		if data [4:8] == "feed":
+		if data [4:11] == "feedall":
 			if not bl_feed:
 				out = bl_getlang ("Waiting feed list is empty.")
 			else:
@@ -1169,6 +1194,31 @@ def OnOperatorCommand (user, data):
 				out += ("\r\n " + bl_getlang ("Total: %s") + "\r\n") % str (len (bl_feed))
 
 			bl_reply (user, out)
+			return 0
+
+		if data [4:11] == "feeddel":
+			if not bl_feed:
+				bl_reply (user, bl_getlang ("Waiting feed list is empty."))
+				return 0
+
+			addr = data [12:]
+
+			if not addr:
+				del bl_feed [:]
+				bl_reply (user, bl_getlang ("Waiting feed list has been cleared."))
+				return 0
+
+			if not bl_validaddr (addr):
+				bl_reply (user, bl_getlang ("Bad command parameters: %s") % ("feeddel [" + bl_getlang ("addr") + "]"))
+				return 0
+
+			for id, item in enumerate (bl_feed):
+				if item [0] == addr:
+					bl_feed.pop (id)
+					bl_reply (user, bl_getlang ("Waiting feed list item deleted: %s.%s") % (addr, vh.GetIPCC (addr)))
+					return 0
+
+			bl_reply (user, bl_getlang ("Waiting feed list out of item: %s.%s") % (addr, vh.GetIPCC (addr)))
 			return 0
 
 		if data [4:8] == "find":
@@ -1867,8 +1917,10 @@ def OnOperatorCommand (user, data):
 		out = bl_getlang ("Blacklist usage") + ":\r\n\r\n"
 
 		out += " stat\t\t\t\t\t- " + bl_getlang ("Script statistics") + "\r\n"
-		out += " prox\t\t\t\t\t- " + bl_getlang ("Show waiting proxy lookups") + "\r\n"
-		out += " feed\t\t\t\t\t- " + bl_getlang ("Show waiting feed list") + "\r\n\r\n"
+		out += " prox\t\t\t\t\t- " + bl_getlang ("Show waiting proxy lookups") + "\r\n\r\n"
+
+		out += " feedall\t\t\t\t\t- " + bl_getlang ("Show waiting feed list") + "\r\n"
+		out += " feeddel [" + bl_getlang ("addr") + "]\t\t\t\t- " + bl_getlang ("Delete from waiting feed list") + "\r\n\r\n"
 
 		out += " find <" + bl_getlang ("item") + ">\t\t\t\t- " + bl_getlang ("Search in loaded lists") + "\r\n"
 		out += " del <" + bl_getlang ("addr") + ">-[" + bl_getlang ("range") + "]\t\t\t- " + bl_getlang ("Delete blacklisted item") + "\r\n\r\n"
@@ -1979,6 +2031,7 @@ def OnTimer (msec):
 											if bl_waitfeed (item [0]):
 												bl_notify (bl_getlang ("Notifying blacklisted login from %s with IP %s.%s: %s") % (item [1][0] if len (item [1]) == 1 else ", ".join (item [1]), item [0], code, bl_getlang ("Public proxy")))
 
+											# todo: bl_extry if ever required
 											bl_stat ["notify"] += 1
 											bl_prox [pos][id][2] = 3
 										elif bl_excheck (item [0], intaddr, code, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], item [1][0] if len (item [1]) == 1 else ", ".join (item [1])):
