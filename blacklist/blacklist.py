@@ -1,7 +1,7 @@
 # coding: latin-1
 
-# Blacklist 1.2.1.1
-# Â© 2010-2016 RoLex
+# Blacklist 1.2.2.0
+# © 2010-2016 RoLex
 # Thanks to Frog
 
 # Changelog:
@@ -45,34 +45,35 @@
 # -------
 # 1.2.0.0 - Added bypass of public proxy lookup for local and private IP addresses
 # 1.2.0.0 - Added four digit version numbering
-# -------
-# 1.2.0.2 - Fixed wrong UTC time use instead of local time
-# 1.2.0.3 - Fixed login notification for slow connections
-# 1.2.1.0 - Fixed incorrect action status when adding new list
-# 1.2.1.0 - Fixed missing translation parameter in loading disabled list message
 # 1.2.0.1 - Added "listact" command to set list block action
 # 1.2.0.1 - Added "action_proxy" configuration to set public proxy detection block action
 # 1.2.0.1 - Added "action_mylist" configuration to set my list item detection block action
+# 1.2.0.2 - Fixed wrong UTC time use instead of local time
+# 1.2.0.3 - Fixed login notification for slow connections
 # 1.2.0.4 - Added "nick_bot" configuration to register bot for sending notifications
 # 1.2.0.5 - Added "extry" command to search for IP address in exception list
+# -------
+# 1.2.1.0 - Fixed incorrect action status when adding new list
+# 1.2.1.0 - Fixed missing translation parameter in loading disabled list message
 # 1.2.1.0 - Added "listex" command to disable or enable list exception usage
 # 1.2.1.0 - Added "except_proxy" configuration to set public proxy detection exception usage
 # 1.2.1.0 - Added "except_mylist" configuration to set my list item detection exception usage
 # 1.2.1.1 - Added "action_extry" configuration to run exception lookup on notification actions
 # 1.2.1.1 - Added "feeddel" command to delete items from waiting feed list
 # -------
+# 1.2.2.0 - Added IP Intelligence proxy lookup instead of Google based public proxy lookup
+# -------
 
-import vh, re, urllib2, urlparse, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, operator, random, json, ConfigParser
+import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.1.1", # todo: dont forget to update
+	"version": "1.2.2.0", # todo: dont forget to update
 	"curlver": ["curl", "-V"],
-	"curlreq": "curl -G -L --max-redirs %s --retry %s --connect-timeout %s -m %s --interface %s -A \"%s\" -e \"%s\" -s -o \"%s\" \"%s\" &",
-	"google": "http://ajax.googleapis.com/ajax/services/search/web?v=1.0&userip=%s&rsz=8&q=proxy%%20OR%%20socks%%20%%22%s%%3a1..65535%%22",
-	"userip": "http://www.te-home.net/?do=tools&action=whatismyip",
-	"referer": ["https://github.com/verlihub/python/", []],
-	"useragent": ["Blacklist/%s", None],
-	"botdesc": "<Blacklist V:%s,M:A,H:0/0/1,S:0>",
+	"curlreq": "6375726c202d47202d4c202d2d6d61782d726564697273202573202d2d7265747279202573202d2d636f6e6e6563742d74696d656f7574202573202d6d202573202d412022257322202d652022257322202d73202d6f202225732220222573222026",
+	"ipintel": "687474703a2f2f636865636b2e6765746970696e74656c2e6e65742f636865636b2e7068703f666f726d61743d6a736f6e26636f6e746163743d25732669703d2573",
+	"referer": "68747470733a2f2f6769746875622e636f6d2f7665726c696875622f707974686f6e2f",
+	"useragent": ["426c61636b6c6973742f2573", None],
+	"botdesc": "3c426c61636b6c69737420563a25732c4d3a412c483a302f302f312c533a303e",
 	"datadir": os.path.join (vh.basedir, "blackdata"),
 	"timersec": 60,
 	"delwait": 60,
@@ -189,17 +190,17 @@ bl_lang = {
 	106: "Failed to parse JSON",
 	107: "Failed to get status",
 	108: "Unexpected status: %s",
-	109: "Failed to get results",
+	109: "Failed to get result",
 	110: "Failed to open URL",
-	111: "Failed to get search data",
-	112: "Failed to read INI",
-	113: "Failed to create file",
-	114: "Failed to get IP",
-	115: "User IP: %s",
+	111: "Waiting feed list out of item: %s.%s",
+	112: "Error status: %s",
+	113: "Unknown",
+	114: "Waiting feed list item deleted: %s.%s",
+	115: "Bad command parameters: %s",
 	116: "Public proxy lookup",
-	117: "Missing user IP.",
+	117: "Waiting feed list has been cleared.",
 	118: "Not enough matches for %s.%s: %s of %s",
-	119: "Public proxy detected: %s:%s.%s",
+	119: "Public proxy detected: %s.%s",
 	120: "Failed proxy detection for %s.%s: %s",
 	121: "Delete blacklisted item",
 	122: "List out of item with range: %s - %s",
@@ -241,7 +242,7 @@ bl_lang = {
 	158: "Enable blacklist list update notification",
 	159: "Maximum number of blacklist search results",
 	160: "Enable public proxy lookup on user login",
-	161: "Own IP required for public proxy lookup",
+	161: "Email address required for proxy lookup",
 	162: "Minimal number of public proxy matches",
 	163: "Minutes to wait after hub is started",
 	164: "Seconds to process proxy lookup queue",
@@ -251,7 +252,7 @@ bl_lang = {
 	168: "Disable proxy lookup failure notifications",
 	169: "Level of proxy lookup debug information",
 	170: "User agent: %s",
-	171: "New referer: %s",
+	171: "Delete from waiting feed list",
 	172: "Set list block action",
 	173: "Item now set to block",
 	174: "Item now set to notify",
@@ -274,12 +275,7 @@ bl_lang = {
 	191: "Exception usage on public proxy detections",
 	192: "Exception usage on my list item detections",
 	193: "Run exception lookup on notification actions",
-	194: "Exception list out of IP %s.%s: %s",
-	195: "Delete from waiting feed list",
-	196: "Waiting feed list has been cleared.",
-	197: "Bad command parameters: %s",
-	198: "Waiting feed list item deleted: %s.%s",
-	199: "Waiting feed list out of item: %s.%s"
+	194: "Exception list out of IP %s.%s: %s"
 }
 
 bl_conf = {
@@ -295,8 +291,8 @@ bl_conf = {
 	"notify_update": [1, "int", 0, 1, "Enable blacklist list update notification"],
 	"find_maxres": [1000, "int", 1, 10000, "Maximum number of blacklist search results"],
 	"prox_lookup": [0, "int", 0, 1, "Enable public proxy lookup on user login"],
-	"prox_userip": ["", "str", 0, 15, "Own IP required for public proxy lookup"],
-	"prox_match": [3, "int", 1, 8, "Minimal number of public proxy matches"],
+	"prox_email": ["", "str", 0, 255, "Email address required for proxy lookup"],
+	"prox_match": [80, "int", 1, 100, "Minimal number of public proxy matches"],
 	"prox_start": [5, "int", 0, 30, "Minutes to wait after hub is started"],
 	"prox_timer": [3, "int", 1, 300, "Seconds to process proxy lookup queue"],
 	"prox_queue": [100, "int", 1, 10000, "Maximum number of proxy lookups to enqueue"],
@@ -329,7 +325,7 @@ bl_list = [
 	#["http://ledo.feardc.net/mirror/torserver.list", "single", "Tor server", 60, 0, 1, 1, 0]
 ]
 
-bl_item = []
+bl_item = [[] for pos in xrange (256)]
 bl_prox = [[] for pos in xrange (256)]
 bl_myli = []
 bl_exli = []
@@ -337,7 +333,6 @@ bl_feed = []
 
 def bl_main ():
 	global bl_defs, bl_lang, bl_conf, bl_list, bl_myli, bl_exli
-	random.seed ()
 
 	vh.SQL (
 		"create table if not exists `py_bl_lang` ("\
@@ -440,22 +435,18 @@ def bl_main ():
 		out += (" [*] " + bl_getlang ("%s version: %s") + "\r\n") % ("cURL", res [1])
 
 		if res [0]:
-			res = bl_userip ()
-			out += (" [*] " + bl_getlang ("User IP: %s") + "\r\n") % res [1]
+			res = bl_makedir (bl_defs ["datadir"])
+			out += (" [*] " + bl_getlang ("Data directory: %s") + "\r\n") % res [1]
 
 			if res [0]:
-				res = bl_makedir (bl_defs ["datadir"])
-				out += (" [*] " + bl_getlang ("Data directory: %s") + "\r\n") % res [1]
+				try:
+					import fake_useragent
+					bl_defs ["useragent"][1] = fake_useragent.UserAgent ()
+				except:
+					pass
 
-				if res [0]:
-					try:
-						import fake_useragent
-						bl_defs ["useragent"][1] = fake_useragent.UserAgent ()
-					except:
-						pass
-
-					out += (" [*] " + bl_getlang ("User agent: %s") + "\r\n") % bl_useragent (True)
-					fail = False
+				out += (" [*] " + bl_getlang ("User agent: %s") + "\r\n") % bl_useragent (True)
+				fail = False
 
 		if fail:
 			bl_setconf ("prox_lookup", "0")
@@ -463,12 +454,12 @@ def bl_main ():
 	bl_notify (out)
 
 def bl_import (list, type, title, action, exuse, update = False): # gzip-p2p, gzip-emule, gzip-range, gzip-single, zip-p2p, zip-emule, zip-range, zip-single, p2p, emule, range, single
-	global bl_conf, bl_item
+	global bl_defs, bl_conf, bl_item
 	file = None
 
 	if "://" in list:
 		try:
-			file = urllib2.urlopen (urllib2.Request (list, None, {"Referer": bl_referer (), "User-agent": bl_useragent ()}), None, bl_conf ["time_down"][0])
+			file = urllib2.urlopen (urllib2.Request (list, None, {"Referer": bl_defs ["referer"].decode ("hex"), "User-agent": bl_useragent ()}), None, bl_conf ["time_down"][0])
 		except urllib2.HTTPError:
 			return bl_getlang ("Failed with HTTP error")
 		except urllib2.URLError:
@@ -585,8 +576,8 @@ def bl_reload ():
 
 	return out
 
-def bl_lookup (data, addr):
-	global bl_defs, bl_conf
+def bl_lookup (data):
+	global bl_conf
 	list = None
 
 	try:
@@ -597,87 +588,32 @@ def bl_lookup (data, addr):
 	if not list:
 		return [False, bl_getlang ("Failed to parse JSON")]
 
-	if not "responseStatus" in list or not str (list ["responseStatus"]).isdigit ():
+	if not "status" in list:
 		return [False, bl_getlang ("Failed to get status")]
 
-	if int (list ["responseStatus"]) != 200:
-		return [False, bl_getlang ("Unexpected status: %s") % str (list ["responseStatus"])]
+	if list ["status"] == "error":
+		return [False, bl_getlang ("Error status: %s") % str (list ["message"]) if "message" in list else bl_getlang ("Unknown")]
 
-	if not "responseData" in list or not "results" in list ["responseData"]:
-		return [False, bl_getlang ("Failed to get results")]
+	if list ["status"] != "success":
+		return [False, bl_getlang ("Unexpected status: %s") % str (list ["status"])]
 
-	find, finds, ports = re.compile (re.escape (addr) + "\\:(\\d{1,5})"), 0, {}
-
-	for item in list ["responseData"]["results"]:
-		if bl_conf ["prox_lookup"][0] and "url" in item and item ["url"]:
-			part = urlparse.urlsplit (item ["url"])
-
-			if part and part [0] and part [1]:
-				url = str (part [0].lower () + "://" + part [1].lower () + "/")
-
-				if not url in bl_defs ["referer"][1]:
-					bl_defs ["referer"][1].append (url)
-
-					if len (bl_defs ["referer"][1]) >= 100:
-						bl_defs ["referer"][1].pop (0)
-
-					if bl_conf ["prox_debug"][0] > 1:
-						bl_notify (bl_getlang ("New referer: %s") % url)
-
-		for name in ["content", "title", "url"]:
-			if not name in item:
-				return [False, bl_getlang ("Failed to get search data")]
-
-			match = find.search (re.sub ("<[^<]+?>", "", item [name].replace ("\r", "").replace ("\n", "")))
-
-			if match:
-				port = int (match.group (1))
-
-				if port >= 1 and port <= 65535:
-					port = str (port)
-
-					if port in ports:
-						ports [port] += 1
-					else:
-						ports [port] = 1
-
-					finds += 1
-
-					if finds >= bl_conf ["prox_match"][0]:
-						return [True, max (ports.iteritems (), key = operator.itemgetter (1)) [0]]
-
-					break
-
-	return [False, finds]
-
-def bl_userip ():
-	global bl_defs
-	res = bl_httpreq (bl_defs ["userip"])
-
-	if not res [0]:
-		return [False, res [1]]
-
-	file = StringIO.StringIO (res [1])
-
-	if not file:
-		return [False, bl_getlang ("Failed to create file")]
-
-	ini = ConfigParser.ConfigParser ()
+	if not "result" in list:
+		return [False, bl_getlang ("Failed to get result")]
 
 	try:
-		ini.readfp (file)
+		res = float (list ["result"])
 	except:
-		file.close ()
-		return [False, bl_getlang ("Failed to read INI")]
+		res = -1
 
-	file.close ()
-	addr = ini.get ("address", "ipv4")
+	if res < 0:
+		return [False, bl_getlang ("Failed to get result")]
 
-	if not addr or not bl_validaddr (addr):
-		return [False, bl_getlang ("Failed to get IP")]
+	res = int (res * 100)
 
-	bl_setconf ("prox_userip", addr)
-	return [True, addr]
+	if res >= bl_conf ["prox_match"][0]:
+		return [True, res]
+
+	return [False, res]
 
 def bl_curlver ():
 	global bl_defs
@@ -699,11 +635,11 @@ def bl_curlver ():
 	return [True, find.group (1)]
 
 def bl_httpreq (url):
-	global bl_conf
+	global bl_defs, bl_conf
 	file = None
 
 	try:
-		file = urllib2.urlopen (urllib2.Request (url, None, {"Referer": bl_referer (), "User-agent": bl_useragent ()}), None, bl_conf ["time_down"][0])
+		file = urllib2.urlopen (urllib2.Request (url, None, {"Referer": bl_defs ["referer"].decode ("hex"), "User-agent": bl_useragent ()}), None, bl_conf ["time_down"][0])
 	except urllib2.HTTPError:
 		return [False, bl_getlang ("Failed with HTTP error")]
 	except urllib2.URLError:
@@ -878,12 +814,6 @@ def bl_setconf (name, value, update = True):
 					return res [1]
 
 				bl_notify (bl_getlang ("%s version: %s") % ("cURL", res [1]))
-				res = bl_userip ()
-
-				if not res [0]:
-					return res [1]
-
-				bl_notify (bl_getlang ("User IP: %s") % res [1])
 				res = bl_makedir (bl_defs ["datadir"])
 
 				if not res [0]:
@@ -902,12 +832,7 @@ def bl_setconf (name, value, update = True):
 				del bl_prox [:]
 				bl_prox = [[] for pos in xrange (256)]
 				bl_makedir (bl_defs ["datadir"])
-				del bl_defs ["referer"][1][:]
 				bl_defs ["useragent"][1] = None
-
-		elif name == "prox_userip":
-			if not bl_validaddr (new):
-				bl_setconf ("prox_lookup", "0")
 
 		vh.SQL ("update `py_bl_conf` set `value` = '%s' where `name` = '%s'" % (bl_repsql (str (new)), bl_repsql (name)))
 
@@ -955,18 +880,7 @@ def bl_useragent (rand = False):
 	if rand and bl_defs ["useragent"][1]:
 		res = str (bl_defs ["useragent"][1]["random"])
 	else:
-		res = bl_defs ["useragent"][0] % bl_defs ["version"]
-
-	return res
-
-def bl_referer (rand = False):
-	global bl_defs
-	res = ""
-
-	if rand and bl_defs ["referer"][1]:
-		res = random.choice (bl_defs ["referer"][1])
-	else:
-		res = bl_defs ["referer"][0]
+		res = bl_defs ["useragent"][0].decode ("hex") % bl_defs ["version"]
 
 	return res
 
@@ -994,7 +908,7 @@ def bl_notify (data):
 
 def bl_addbot (nick):
 	global bl_defs, bl_conf
-	vh.AddRobot (nick, bl_conf ["class_feed"][0], bl_defs ["botdesc"] % bl_defs ["version"], chr (1), "", "0")
+	vh.AddRobot (nick, bl_conf ["class_feed"][0], bl_defs ["botdesc"].decode ("hex") % bl_defs ["version"], chr (1), "", "0")
 
 def bl_delbot (nick):
 	vh.DelRobot (nick)
@@ -1315,20 +1229,16 @@ def OnOperatorCommand (user, data):
 				bl_reply (user, bl_getlang ("Missing command parameters: %s") % ("look <" + bl_getlang ("addr") + ">"))
 				return 0
 
-			if not bl_conf ["prox_userip"][0]:
-				bl_reply (user, bl_getlang ("Missing user IP."))
-				return 0
-
-			res = bl_httpreq (bl_defs ["google"] % (bl_conf ["prox_userip"][0], data [9:]))
+			res = bl_httpreq (bl_defs ["ipintel"].decode ("hex") % (bl_conf ["prox_email"][0], data [9:]))
 
 			if not res [0]:
 				bl_reply (user, res [1])
 				return 0
 
-			res = bl_lookup (res [1], data [9:])
+			res = bl_lookup (res [1])
 
 			if res [0]:
-				bl_reply (user, bl_getlang ("Public proxy detected: %s:%s.%s") % (data [9:], res [1], vh.GetIPCC (data [9:])))
+				bl_reply (user, bl_getlang ("Public proxy detected: %s.%s") % (data [9:], vh.GetIPCC (data [9:])))
 			else:
 				if str (res [1]).isdigit ():
 					bl_reply (user, bl_getlang ("Not enough matches for %s.%s: %s of %s") % (data [9:], vh.GetIPCC (data [9:]), str (res [1]), str (bl_conf ["prox_match"][0])))
@@ -1800,7 +1710,7 @@ def OnOperatorCommand (user, data):
 						intaddr = bl_addrtoint (prox [0])
 
 						if intaddr >= item [0] and intaddr <= item [1]:
-							bl_item [intaddr >> 24].append ([intaddr, intaddr, bl_getlang ("Public proxy"), bl_conf ["action_proxy"][0]]) # todo: also add to mysql table when we have one
+							bl_item [intaddr >> 24].append ([intaddr, intaddr, bl_getlang ("Public proxy"), bl_conf ["action_proxy"][0], bl_conf ["except_proxy"][0]]) # todo: also add to mysql table when we have one
 							bl_prox [pos].pop (pid)
 							stop = True
 							break
@@ -1981,7 +1891,7 @@ def OnTimer (msec):
 						start += 1
 
 						try:
-							os.system (bl_defs ["curlreq"] % (str (1), str (1), str (bl_conf ["time_down"][0]), str (bl_conf ["time_down"][0] * 2), bl_conf ["prox_userip"][0], bl_useragent (True), bl_referer (True), os.path.join (bl_defs ["datadir"], item [0]), (bl_defs ["google"] % (bl_conf ["prox_userip"][0], item [0]))))
+							os.system (bl_defs ["curlreq"].decode ("hex") % (str (1), str (1), str (bl_conf ["time_down"][0]), str (bl_conf ["time_down"][0] * 2), bl_useragent (True), "", os.path.join (bl_defs ["datadir"], item [0]), (bl_defs ["ipintel"].decode ("hex") % (bl_conf ["prox_email"][0], item [0])))) # bl_defs ["referer"].decode ("hex")
 							bl_prox [pos][id][2], bl_prox [pos][id][3] = 1, now
 						except:
 							bl_notify (bl_getlang ("Failed proxy detection for %s.%s: %s") % (item [0], vh.GetIPCC (item [0]), bl_getlang ("Failed to execute command")))
@@ -2020,10 +1930,10 @@ def OnTimer (msec):
 								file.close ()
 
 								if data:
-									res = bl_lookup (data, item [0])
+									res = bl_lookup (data)
 
 									if res [0]:
-										bl_notify (bl_getlang ("Public proxy detected: %s:%s.%s") % (item [0], res [1], code))
+										bl_notify (bl_getlang ("Public proxy detected: %s.%s") % (item [0], code))
 										intaddr = bl_addrtoint (item [0])
 										keep = True
 
@@ -2043,7 +1953,7 @@ def OnTimer (msec):
 
 											bl_stat ["block"] += len (item [1])
 											bl_prox [pos][id][2] = 2
-											bl_item [intaddr >> 24].append ([intaddr, intaddr, bl_getlang ("Public proxy"), bl_conf ["action_proxy"][0]]) # todo: also add to mysql table when we have one
+											bl_item [intaddr >> 24].append ([intaddr, intaddr, bl_getlang ("Public proxy"), bl_conf ["action_proxy"][0], bl_conf ["except_proxy"][0]]) # todo: also add to mysql table when we have one
 									else:
 										if str (res [1]).isdigit ():
 											keep = True

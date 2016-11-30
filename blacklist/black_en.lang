@@ -1,6 +1,6 @@
 # Language: en_GB
 # Charset: CP1252
-# Version: 1.2.1
+# Version: 1.2.2
 # Author: RoLex
 # Email: webmaster@feardc.net
 
@@ -113,17 +113,11 @@ Failed to load JSON|
 Failed to parse JSON|
 Failed to get status|
 Unexpected status: %s|
-Failed to get results|
+Failed to get result|
 Failed to open URL|
-Failed to get search data|
-Failed to read INI|
-Failed to create file|
-Failed to get IP|
-User IP: %s|
 Public proxy lookup|
-Missing user IP.|
 Not enough matches for %s.%s: %s of %s|
-Public proxy detected: %s:%s.%s|
+Public proxy detected: %s.%s|
 Failed proxy detection for %s.%s: %s|
 Delete blacklisted item|
 List out of item with range: %s - %s|
@@ -165,7 +159,7 @@ Download operation timeout in seconds|
 Enable blacklist list update notification|
 Maximum number of blacklist search results|
 Enable public proxy lookup on user login|
-Own IP required for public proxy lookup|
+Email address required for proxy lookup|
 Minimal number of public proxy matches|
 Minutes to wait after hub is started|
 Seconds to process proxy lookup queue|
@@ -175,7 +169,6 @@ Explanation: %s|
 Disable proxy lookup failure notifications|
 Level of proxy lookup debug information|
 User agent: %s|
-New referer: %s|
 Set list block action|
 Item now set to block|
 Item now set to notify|
@@ -204,3 +197,5 @@ Waiting feed list has been cleared.|
 Bad command parameters: %s|
 Waiting feed list item deleted: %s.%s|
 Waiting feed list out of item: %s.%s|
+Error status: %s|
+Unknown|
