@@ -1,7 +1,7 @@
 # coding: latin-1
 
 # Blacklist 1.2.2.0
-# © 2010-2016 RoLex
+# © 2010-2017 RoLex
 # Thanks to Frog
 
 # Changelog:
