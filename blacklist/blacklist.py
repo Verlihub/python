@@ -1093,6 +1093,12 @@ def OnParsedMsgPM (nick, data, user):
 def OnParsedMsgMCTo (nick, data, user):
 	return OnParsedMsgChat (nick, data)
 
+def OnUserCommand (nick, data):
+	if data [1:3] == "me" and (data [3:4] == "" or data [3:4] == " "):
+		return OnParsedMsgChat (nick, data)
+
+	return 1
+
 def OnOperatorCommand (user, data):
 	global bl_defs, bl_lang, bl_conf, bl_stat, bl_list, bl_item, bl_prox, bl_myli, bl_exli, bl_feed
 
