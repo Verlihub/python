@@ -158,7 +158,7 @@ Minutes to delay same IP notifications|
 Download operation timeout in seconds|
 Enable blacklist list update notification|
 Maximum number of blacklist search results|
-Enable public proxy lookup on user login|
+Enable proxy lookup on user login or chat|
 Email address required for proxy lookup|
 Minimal number of public proxy matches|
 Minutes to wait after hub is started|
@@ -199,3 +199,7 @@ Waiting feed list item deleted: %s.%s|
 Waiting feed list out of item: %s.%s|
 Error status: %s|
 Unknown|
+Blocking blacklisted chat from %s with IP %s.%s: %s|
+Chat: %s|
+Notifying blacklisted chat from %s with IP %s.%s: %s|
+Blacklisted chat exception from %s with IP %s.%s: %s|
