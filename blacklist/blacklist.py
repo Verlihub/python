@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.2.1
+# Blacklist 1.2.2.2
 # © 2010-2017 RoLex
 # Thanks to Frog
 
@@ -63,12 +63,13 @@
 # -------
 # 1.2.2.0 - Added IP Intelligence proxy lookup instead of Google based public proxy lookup
 # 1.2.2.1 - Added chat mode to public proxy lookup
+# 1.2.2.2 - Added operator chat message script command to Ledokol
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.2.1", # todo: dont forget to update
+	"version": "1.2.2.2", # todo: dont forget to update
 	"curlver": ["curl", "-V"],
 	"curlreq": "6375726c202d47202d4c202d2d6d61782d726564697273202573202d2d7265747279202573202d2d636f6e6e6563742d74696d656f7574202573202d6d202573202d412022257322202d652022257322202d73202d6f202225732220222573222026",
 	"ipintel": "687474703a2f2f636865636b2e6765746970696e74656c2e6e65742f636865636b2e7068703f666f726d61743d6a736f6e26636f6e746163743d25732669703d2573",
@@ -919,6 +920,11 @@ def bl_notify (data):
 		vh.SendPMToAll (bl_repnmdc (data), bl_conf ["nick_bot"][0], bl_conf ["class_feed"][0], 10)
 	else:
 		vh.SendPMToAll (bl_repnmdc (data), vh.opchatname, bl_conf ["class_feed"][0], 10)
+
+		try:
+			vh.ScriptCommand ("opchat_to_all", "[%s] <%s> %s" % (str (bl_conf ["class_feed"][0]), vh.opchatname, data)) # to catch in ledokol
+		except:
+			pass
 
 def bl_addbot (nick):
 	global bl_defs, bl_conf
