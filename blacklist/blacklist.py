@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.2.2
+# Blacklist 1.2.2.3
 # © 2010-2017 RoLex
 # Thanks to Frog
 
@@ -64,12 +64,13 @@
 # 1.2.2.0 - Added IP Intelligence proxy lookup instead of Google based public proxy lookup
 # 1.2.2.1 - Added chat mode to public proxy lookup
 # 1.2.2.2 - Added operator chat message script command to Ledokol
+# 1.2.2.3 - Added more debug messages to public proxy lookup
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.2.2", # todo: dont forget to update
+	"version": "1.2.2.3", # todo: dont forget to update
 	"curlver": ["curl", "-V"],
 	"curlreq": "6375726c202d47202d4c202d2d6d61782d726564697273202573202d2d7265747279202573202d2d636f6e6e6563742d74696d656f7574202573202d6d202573202d412022257322202d652022257322202d73202d6f202225732220222573222026",
 	"ipintel": "687474703a2f2f636865636b2e6765746970696e74656c2e6e65742f636865636b2e7068703f666f726d61743d6a736f6e26636f6e746163743d25732669703d2573",
@@ -281,7 +282,9 @@ bl_lang = {
 	195: "Blocking blacklisted chat from %s with IP %s.%s: %s",
 	196: "Chat: %s",
 	197: "Notifying blacklisted chat from %s with IP %s.%s: %s",
-	198: "Blacklisted chat exception from %s with IP %s.%s: %s"
+	198: "Blacklisted chat exception from %s with IP %s.%s: %s",
+	199: "Checking logged in user from IP %s.%s: %s",
+	200: "Checking chat user from IP %s.%s: %s"
 }
 
 bl_conf = {
@@ -1052,6 +1055,9 @@ def OnUserLogin (nick):
 	if bl_conf ["prox_lookup"][0] == 1 and size < bl_conf ["prox_queue"][0]:
 		bl_prox [addrpos].append ([addr, [nick], 0, now, False])
 
+		if bl_conf ["prox_debug"][0] > 1:
+			bl_notify (bl_getlang ("Checking logged in user from IP %s.%s: %s") % (addr, code, nick))
+
 	return 1
 
 def OnParsedMsgChat (nick, data):
@@ -1090,6 +1096,9 @@ def OnParsedMsgChat (nick, data):
 
 	if size < bl_conf ["prox_queue"][0]:
 		bl_prox [addrpos].append ([addr, [nick], 0, time.time (), True])
+
+		if bl_conf ["prox_debug"][0] > 1:
+			bl_notify (bl_getlang ("Checking chat user from IP %s.%s: %s") % (addr, vh.GetUserCC (nick), nick))
 
 	return 1
 

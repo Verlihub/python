@@ -203,3 +203,5 @@ Blocking blacklisted chat from %s with IP %s.%s: %s|
 Chat: %s|
 Notifying blacklisted chat from %s with IP %s.%s: %s|
 Blacklisted chat exception from %s with IP %s.%s: %s|
+Checking logged in user from IP %s.%s: %s|
+Checking chat user from IP %s.%s: %s|
