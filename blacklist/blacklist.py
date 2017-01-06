@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.2.3
+# Blacklist 1.2.2.4
 # © 2010-2017 RoLex
 # Thanks to Frog
 
@@ -30,6 +30,7 @@
 # -------
 # 1.1.7.0 - Fixed OnTimer callback
 # -------
+# 1.1.8.0 - Fixed missing global variable declarations
 # 1.1.8.0 - Added referer and user agent headers for URL requests
 # 1.1.8.0 - Added different method of validating numbers
 # 1.1.8.0 - Added different method of getting hub bot nicks
@@ -41,7 +42,6 @@
 # 1.1.8.0 - Added short configuration explanations
 # 1.1.8.0 - Added custom blacklist to manage with "my*" commands
 # 1.1.8.0 - Added exception list to database instead of text file
-# 1.1.8.0 - Fixed missing global variable declarations
 # -------
 # 1.2.0.0 - Added bypass of public proxy lookup for local and private IP addresses
 # 1.2.0.0 - Added four digit version numbering
@@ -65,12 +65,13 @@
 # 1.2.2.1 - Added chat mode to public proxy lookup
 # 1.2.2.2 - Added operator chat message script command to Ledokol
 # 1.2.2.3 - Added more debug messages to public proxy lookup
+# 1.2.2.4 - Fixed public proxy exception on login and chat when user is still in cache list
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.2.3", # todo: dont forget to update
+	"version": "1.2.2.4", # todo: dont forget to update
 	"curlver": ["curl", "-V"],
 	"curlreq": "6375726c202d47202d4c202d2d6d61782d726564697273202573202d2d7265747279202573202d2d636f6e6e6563742d74696d656f7574202573202d6d202573202d412022257322202d652022257322202d73202d6f202225732220222573222026",
 	"ipintel": "687474703a2f2f636865636b2e6765746970696e74656c2e6e65742f636865636b2e7068703f666f726d61743d6a736f6e26636f6e746163743d25732669703d2573",
@@ -963,7 +964,7 @@ def OnNewConn (addr):
 
 	for item in bl_item [intaddr >> 24]:
 		if intaddr >= item [0] and intaddr <= item [1]:
-			if not item [3]:
+			if not item [3]: # notification only
 				if bl_waitfeed (addr):
 					bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, item [2]))
 
@@ -974,7 +975,7 @@ def OnNewConn (addr):
 
 	for item in bl_myli:
 		if intaddr >= item [0] and intaddr <= item [1]:
-			if not bl_conf ["action_mylist"][0]:
+			if not bl_conf ["action_mylist"][0]: # notification only
 				if bl_waitfeed (addr):
 					bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, item [2]))
 
@@ -998,7 +999,7 @@ def OnUserLogin (nick):
 
 	for item in bl_item [addrpos]:
 		if intaddr >= item [0] and intaddr <= item [1]:
-			if not item [3]:
+			if not item [3]: # notification only
 				if bl_waitfeed (addr, True):
 					bl_notify (bl_getlang ("Notifying blacklisted login from %s with IP %s.%s: %s") % (nick, addr, code, item [2]))
 
@@ -1011,7 +1012,7 @@ def OnUserLogin (nick):
 
 	for item in bl_myli:
 		if intaddr >= item [0] and intaddr <= item [1]:
-			if not bl_conf ["action_mylist"][0]:
+			if not bl_conf ["action_mylist"][0]: # notification only
 				if bl_waitfeed (addr, True):
 					bl_notify (bl_getlang ("Notifying blacklisted login from %s with IP %s.%s: %s") % (nick, addr, code, item [2]))
 
@@ -1039,12 +1040,8 @@ def OnUserLogin (nick):
 					if not nick in item [1]:
 						bl_prox [pos][id][1].append (nick)
 				elif item [2] == 2:
-					if bl_waitfeed (addr):
-						bl_notify (bl_getlang ("Blocking blacklisted login from %s with IP %s.%s: %s") % (nick, addr, code, bl_getlang ("Public proxy")))
-
-					bl_stat ["block"] += 1
-					return 0
-				#elif item [2] == 3:
+					return bl_excheck (addr, intaddr, code, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick)
+				#elif item [2] == 3: # exception
 					#pass
 
 				return 1
@@ -1071,7 +1068,8 @@ def OnParsedMsgChat (nick, data):
 	if not addr:
 		return 1
 
-	addrpos = bl_addrtoint (addr) >> 24
+	intaddr = bl_addrtoint (addr)
+	addrpos = intaddr >> 24
 	size = 0
 
 	for pos in range (len (bl_prox)):
@@ -1081,12 +1079,8 @@ def OnParsedMsgChat (nick, data):
 					if not nick in item [1]:
 						bl_prox [pos][id][1].append (nick)
 				elif item [2] == 2:
-					if bl_waitfeed (addr):
-						bl_notify (bl_getlang ("Blocking blacklisted chat from %s with IP %s.%s: %s") % (nick, addr, vh.GetUserCC (nick), bl_getlang ("Public proxy")))
-
-					bl_stat ["block"] += 1
-					return 0
-				#elif item [2] == 3:
+					return bl_excheck (addr, intaddr, vh.GetUserCC (nick), bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick, True)
+				#elif item [2] == 3: # exception
 					#pass
 
 				return 1
@@ -2013,7 +2007,7 @@ def OnTimer (msec):
 									res = bl_lookup (data)
 
 									if res [0]:
-										bl_notify (bl_getlang ("Public proxy detected: %s.%s") % (item [0], code))
+										bl_notify (bl_getlang ("Public proxy detected: %s.%s") % (item [0], code)) # todo: must be controlled by bl_waitfeed
 										intaddr = bl_addrtoint (item [0])
 										keep = True
 
@@ -2068,7 +2062,7 @@ def OnTimer (msec):
 				elif item [2] == 2:
 					if now - item [3] >= bl_defs ["delwait"]:
 						dels.insert (0, [pos, id])
-				#elif item [2] == 3:
+				#elif item [2] == 3: # exception
 					#pass
 
 		for item in dels:
