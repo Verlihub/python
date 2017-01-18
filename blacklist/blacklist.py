@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.2.4
+# Blacklist 1.2.2.5
 # © 2010-2017 RoLex
 # Thanks to Frog
 
@@ -66,12 +66,13 @@
 # 1.2.2.2 - Added operator chat message script command to Ledokol
 # 1.2.2.3 - Added more debug messages to public proxy lookup
 # 1.2.2.4 - Fixed public proxy exception on login and chat when user is still in cache list
+# 1.2.2.5 - Added country code to all lower and higher IP addresses
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.2.4", # todo: dont forget to update
+	"version": "1.2.2.5", # todo: dont forget to update
 	"curlver": ["curl", "-V"],
 	"curlreq": "6375726c202d47202d4c202d2d6d61782d726564697273202573202d2d7265747279202573202d2d636f6e6e6563742d74696d656f7574202573202d6d202573202d412022257322202d652022257322202d73202d6f202225732220222573222026",
 	"ipintel": "687474703a2f2f636865636b2e6765746970696e74656c2e6e65742f636865636b2e7068703f666f726d61743d6a736f6e26636f6e746163743d25732669703d2573",
@@ -143,8 +144,8 @@ bl_lang = {
 	55: "Item now enabled",
 	56: "Exception list is empty.",
 	57: "Exception list",
-	58: "Lower IP: %s",
-	59: "Higher IP: %s",
+	58: "Lower IP: %s.%s",
+	59: "Higher IP: %s.%s",
 	60: "Lower IP not valid: %s",
 	61: "Higher IP not valid: %s",
 	62: "Configuration list",
@@ -1289,9 +1290,10 @@ def OnOperatorCommand (user, data):
 
 						out = bl_getlang ("Item deleted from list") + ":\r\n"
 						out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
-						out += ("\r\n [*] " + bl_getlang ("Lower IP: %s")) % pars [0][0]
-						out += ("\r\n [*] " + bl_getlang ("Higher IP: %s")) % (pars [0][1] or pars [0][0])
+						out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]))
+						out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]))
 						out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if item [3] else bl_getlang ("Notify"))
+
 						bl_reply (user, out)
 						return 0
 
@@ -1643,10 +1645,13 @@ def OnOperatorCommand (user, data):
 				out = bl_getlang ("My list") + ":\r\n"
 
 				for id, item in enumerate (bl_myli):
+					loaddr = bl_inttoaddr (item [0])
+					hiaddr = bl_inttoaddr (item [1])
+
 					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
-					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s")) % bl_inttoaddr (item [0])
-					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s")) % bl_inttoaddr (item [1])
+					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr))
+					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (hiaddr, vh.GetIPCC (hiaddr))
 					out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_mylist"][0] else bl_getlang ("Notify"))
 
 			bl_reply (user, out)
@@ -1672,9 +1677,10 @@ def OnOperatorCommand (user, data):
 					out = bl_getlang ("Item already in list") + ":\r\n"
 					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
-					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s")) % pars [0][0]
-					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s")) % (pars [0][1] or pars [0][0])
+					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]))
+					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]))
 					out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_mylist"][0] else bl_getlang ("Notify"))
+
 					bl_reply (user, out)
 					return 0
 
@@ -1686,9 +1692,10 @@ def OnOperatorCommand (user, data):
 			out = bl_getlang ("Item added to list") + ":\r\n"
 			out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (len (bl_myli) - 1)
 			out += ("\r\n [*] " + bl_getlang ("Title: %s")) % (pars [0][2] or bl_getlang ("My item"))
-			out += ("\r\n [*] " + bl_getlang ("Lower IP: %s")) % pars [0][0]
-			out += ("\r\n [*] " + bl_getlang ("Higher IP: %s")) % (pars [0][1] or pars [0][0])
+			out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]))
+			out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]))
 			out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_mylist"][0] else bl_getlang ("Notify"))
+
 			bl_reply (user, out)
 			return 0
 
@@ -1702,13 +1709,16 @@ def OnOperatorCommand (user, data):
 			if id >= 0 and bl_myli and len (bl_myli) - 1 >= id:
 				item, stop = bl_myli.pop (id), False
 				vh.SQL ("delete from `py_bl_myli` where `loaddr` = %s and `hiaddr` = %s" % (str (item [0]), str (item [1])))
+				loaddr = bl_inttoaddr (item [0])
+				hiaddr = bl_inttoaddr (item [1])
 
 				out = bl_getlang ("Item deleted from list") + ":\r\n"
 				out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
 				out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
-				out += ("\r\n [*] " + bl_getlang ("Lower IP: %s")) % bl_inttoaddr (item [0])
-				out += ("\r\n [*] " + bl_getlang ("Higher IP: %s")) % bl_inttoaddr (item [1])
+				out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr))
+				out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (hiaddr, vh.GetIPCC (hiaddr))
 				out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_mylist"][0] else bl_getlang ("Notify"))
+
 				bl_reply (user, out)
 			else:
 				bl_reply (user, bl_getlang ("List out of item with ID: %s") % str (id))
@@ -1722,10 +1732,13 @@ def OnOperatorCommand (user, data):
 				out = bl_getlang ("Exception list") + ":\r\n"
 
 				for id, item in enumerate (bl_exli):
+					loaddr = bl_inttoaddr (item [0])
+					hiaddr = bl_inttoaddr (item [1])
+
 					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
-					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s")) % bl_inttoaddr (item [0])
-					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s") + "\r\n") % bl_inttoaddr (item [1])
+					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr))
+					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s") + "\r\n") % (hiaddr, vh.GetIPCC (hiaddr))
 
 			bl_reply (user, out)
 			return 0
@@ -1750,8 +1763,9 @@ def OnOperatorCommand (user, data):
 					out = bl_getlang ("Item already in list") + ":\r\n"
 					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
-					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s")) % pars [0][0]
-					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s") + "\r\n") % (pars [0][1] or pars [0][0])
+					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]))
+					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s") + "\r\n") % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]))
+
 					bl_reply (user, out)
 					return 0
 
@@ -1763,8 +1777,9 @@ def OnOperatorCommand (user, data):
 			out = bl_getlang ("Item added to list") + ":\r\n"
 			out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (len (bl_exli) - 1)
 			out += ("\r\n [*] " + bl_getlang ("Title: %s")) % (pars [0][2] or bl_getlang ("Exception"))
-			out += ("\r\n [*] " + bl_getlang ("Lower IP: %s")) % pars [0][0]
-			out += ("\r\n [*] " + bl_getlang ("Higher IP: %s") + "\r\n") % (pars [0][1] or pars [0][0])
+			out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]))
+			out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s") + "\r\n") % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]))
+
 			bl_reply (user, out)
 			return 0
 
@@ -1792,11 +1807,15 @@ def OnOperatorCommand (user, data):
 					if stop:
 						break
 
+				loaddr = bl_inttoaddr (item [0])
+				hiaddr = bl_inttoaddr (item [1])
+
 				out = bl_getlang ("Item deleted from list") + ":\r\n"
 				out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
 				out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
-				out += ("\r\n [*] " + bl_getlang ("Lower IP: %s")) % bl_inttoaddr (item [0])
-				out += ("\r\n [*] " + bl_getlang ("Higher IP: %s") + "\r\n") % bl_inttoaddr (item [1])
+				out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr))
+				out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s") + "\r\n") % (hiaddr, vh.GetIPCC (hiaddr))
+
 				bl_reply (user, out)
 			else:
 				bl_reply (user, bl_getlang ("List out of item with ID: %s") % str (id))

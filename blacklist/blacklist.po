@@ -187,10 +187,10 @@ msgstr ""
 msgid "Exception list"
 msgstr ""
 
-msgid "Lower IP: %s"
+msgid "Lower IP: %s.%s"
 msgstr ""
 
-msgid "Higher IP: %s"
+msgid "Higher IP: %s.%s"
 msgstr ""
 
 msgid "Lower IP not valid: %s"

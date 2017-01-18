@@ -62,8 +62,8 @@ Item now disabled|
 Item now enabled|
 Exception list is empty.|
 Exception list|
-Lower IP: %s|
-Higher IP: %s|
+Lower IP: %s.%s|
+Higher IP: %s.%s|
 Lower IP not valid: %s|
 Higher IP not valid: %s|
 Configuration list|
