@@ -67,6 +67,7 @@
 # 1.2.2.3 - Added more debug messages to public proxy lookup
 # 1.2.2.4 - Fixed public proxy exception on login and chat when user is still in cache list
 # 1.2.2.5 - Added country code to all lower and higher IP addresses
+# 1.2.2.5 - Added support for delayed main chat messages
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
@@ -784,6 +785,50 @@ def bl_getlang (data):
 
 	return data
 
+def bl_hubconf (name, deva):
+	res = vh.GetConfig (vh.config_name, name)
+
+	if res == None:
+		return deva
+
+	res = str (res)
+
+	if res.isdigit () or (res [:1] == "-" and res [1:].isdigit ()):
+		res = int (res)
+
+	return res
+
+def bl_hubver (a, b, c, d):
+	vers = bl_hubconf ("hub_version", "0.0.0.0")
+	pars = re.findall ("^(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)$", vers)
+
+	if not pars or not pars [0][0] or not pars [0][1] or not pars [0][2] or not pars [0][3]:
+		return False
+
+	va, vb, vc, vd = int (pars [0][0]), int (pars [0][1]), int (pars [0][2]), int (pars [0][3])
+
+	if va > a:
+		return True
+	elif va < a:
+		return False
+
+	if vb > b:
+		return True
+	elif vb < b:
+		return False
+
+	if vc > c:
+		return True
+	elif vc < c:
+		return False
+
+	if vd > d:
+		return True
+	elif vd < d:
+		return False
+
+	return True # all numbers are equal
+
 def bl_getconf (name):
 	global bl_conf
 
@@ -914,7 +959,10 @@ def bl_repnmdc (data, out = False):
 		return data.replace ("|", "&#124;").replace ("$", "&#36;")
 
 def bl_reply (user, data):
-	vh.SendDataToUser ("<%s> %s|" % (vh.botname, bl_repnmdc (data)), user)
+	if bl_hubver (1, 0, 2, 16):
+		vh.SendDataToUser ("<%s> %s|" % (vh.botname, bl_repnmdc (data)), user, bl_hubconf ("delayed_chat", 0)) # chat is not delayed by default
+	else:
+		vh.SendDataToUser ("<%s> %s|" % (vh.botname, bl_repnmdc (data)), user)
 
 def bl_notify (data):
 	global bl_conf
