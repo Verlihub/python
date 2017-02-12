@@ -304,7 +304,7 @@ bl_conf = {
 	"find_maxres": [1000, "int", 1, 10000, "Maximum number of blacklist search results"],
 	"prox_lookup": [0, "int", 0, 2, "Enable proxy lookup on user login or chat"],
 	"prox_email": ["", "str", 0, 255, "Email address required for proxy lookup"],
-	"prox_match": [80, "int", 1, 100, "Minimal number of public proxy matches"],
+	"prox_match": [99, "int", 1, 100, "Minimal number of public proxy matches"],
 	"prox_start": [5, "int", 0, 30, "Minutes to wait after hub is started"],
 	"prox_timer": [3, "int", 1, 300, "Seconds to process proxy lookup queue"],
 	"prox_queue": [100, "int", 1, 10000, "Maximum number of proxy lookups to enqueue"],
