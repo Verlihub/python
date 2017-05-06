@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.2.5
+# Blacklist 1.2.2.6
 # © 2010-2017 RoLex
 # Thanks to Frog
 
@@ -68,12 +68,13 @@
 # 1.2.2.4 - Fixed public proxy exception on login and chat when user is still in cache list
 # 1.2.2.5 - Added country code to all lower and higher IP addresses
 # 1.2.2.5 - Added support for delayed main chat messages
+# 1.2.2.6 - Fixed bypass of public proxy lookup for local and private IP addresses in chat mode
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.2.5", # todo: dont forget to update
+	"version": "1.2.2.6", # todo: dont forget to update
 	"curlver": ["curl", "-V"],
 	"curlreq": "6375726c202d47202d4c202d2d6d61782d726564697273202573202d2d7265747279202573202d2d636f6e6e6563742d74696d656f7574202573202d6d202573202d412022257322202d652022257322202d73202d6f202225732220222573222026",
 	"ipintel": "687474703a2f2f636865636b2e6765746970696e74656c2e6e65742f636865636b2e7068703f666f726d61743d6a736f6e26636f6e746163743d25732669703d2573",
@@ -287,7 +288,8 @@ bl_lang = {
 	197: "Notifying blacklisted chat from %s with IP %s.%s: %s",
 	198: "Blacklisted chat exception from %s with IP %s.%s: %s",
 	199: "Checking logged in user from IP %s.%s: %s",
-	200: "Checking chat user from IP %s.%s: %s"
+	200: "Checking chat user from IP %s.%s: %s",
+	201: "Local or private IP specified: %s.%s"
 }
 
 bl_conf = {
@@ -1117,6 +1119,7 @@ def OnParsedMsgChat (nick, data):
 	if not addr:
 		return 1
 
+	code = vh.GetUserCC (nick)
 	intaddr = bl_addrtoint (addr)
 	addrpos = intaddr >> 24
 	size = 0
@@ -1128,7 +1131,7 @@ def OnParsedMsgChat (nick, data):
 					if not nick in item [1]:
 						bl_prox [pos][id][1].append (nick)
 				elif item [2] == 2:
-					return bl_excheck (addr, intaddr, vh.GetUserCC (nick), bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick, True)
+					return bl_excheck (addr, intaddr, code, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick, True)
 				#elif item [2] == 3: # exception
 					#pass
 
@@ -1137,11 +1140,11 @@ def OnParsedMsgChat (nick, data):
 			if not item [2]:
 				size += 1
 
-	if size < bl_conf ["prox_queue"][0]:
+	if code != "L1" and code != "P1" and size < bl_conf ["prox_queue"][0]:
 		bl_prox [addrpos].append ([addr, [nick], 0, time.time (), True])
 
 		if bl_conf ["prox_debug"][0] > 1:
-			bl_notify (bl_getlang ("Checking chat user from IP %s.%s: %s") % (addr, vh.GetUserCC (nick), nick))
+			bl_notify (bl_getlang ("Checking chat user from IP %s.%s: %s") % (addr, code, nick))
 
 	return 1
 
@@ -1351,6 +1354,12 @@ def OnOperatorCommand (user, data):
 		if data [4:8] == "look":
 			if not data [9:] or not bl_validaddr (data [9:]):
 				bl_reply (user, bl_getlang ("Missing command parameters: %s") % ("look <" + bl_getlang ("addr") + ">"))
+				return 0
+
+			code = vh.GetIPCC (data [9:])
+
+			if code == "L1" or code == "P1":
+				bl_reply (user, bl_getlang ("Local or private IP specified: %s.%s") % (data [9:], code))
 				return 0
 
 			res = bl_httpreq (bl_defs ["ipintel"].decode ("hex") % (bl_conf ["prox_email"][0], data [9:]))
