@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.2.6
+# Blacklist 1.2.2.7
 # © 2010-2017 RoLex
 # Thanks to Frog
 
@@ -69,12 +69,13 @@
 # 1.2.2.5 - Added country code to all lower and higher IP addresses
 # 1.2.2.5 - Added support for delayed main chat messages
 # 1.2.2.6 - Fixed bypass of public proxy lookup for local and private IP addresses in chat mode
+# 1.2.2.7 - Added country code translation to some messages
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.2.6", # todo: dont forget to update
+	"version": "1.2.2.7", # todo: dont forget to update
 	"curlver": ["curl", "-V"],
 	"curlreq": "6375726c202d47202d4c202d2d6d61782d726564697273202573202d2d7265747279202573202d2d636f6e6e6563742d74696d656f7574202573202d6d202573202d412022257322202d652022257322202d73202d6f202225732220222573222026",
 	"ipintel": "687474703a2f2f636865636b2e6765746970696e74656c2e6e65742f636865636b2e7068703f666f726d61743d6a736f6e26636f6e746163743d25732669703d2573",
@@ -236,8 +237,8 @@ bl_lang = {
 	145: "New my item",
 	146: "Delete my item",
 	147: "My items: %s",
-	148: "Excepted country",
-	149: "Blocked country",
+	148: "Excepted country: %s=%s",
+	149: "Blocked country: %s=%s",
 	150: "User nick to receive all feed messages",
 	151: "Space separated country codes to block",
 	152: "Space separated country codes to except",
@@ -720,11 +721,11 @@ def bl_excheck (addr, intaddr, code, name, exuse, nick = None, chat = False):
 			if bl_waitfeed (addr):
 				if nick:
 					if chat:
-						bl_notify ((bl_getlang ("Blacklisted chat exception from %s with IP %s.%s: %s") + " | %s") % (nick, addr, code, name, bl_getlang ("Excepted country")))
+						bl_notify ((bl_getlang ("Blacklisted chat exception from %s with IP %s.%s: %s") + " | %s") % (nick, addr, code, name, bl_getlang ("Excepted country: %s=%s") % (code, vh.GetIPCN (addr) or "??")))
 					else:
-						bl_notify ((bl_getlang ("Blacklisted login exception from %s with IP %s.%s: %s") + " | %s") % (nick, addr, code, name, bl_getlang ("Excepted country")))
+						bl_notify ((bl_getlang ("Blacklisted login exception from %s with IP %s.%s: %s") + " | %s") % (nick, addr, code, name, bl_getlang ("Excepted country: %s=%s") % (code, vh.GetIPCN (addr) or "??")))
 				else:
-					bl_notify ((bl_getlang ("Blacklisted connection exception from %s.%s: %s") + " | %s") % (addr, code, name, bl_getlang ("Excepted country")))
+					bl_notify ((bl_getlang ("Blacklisted connection exception from %s.%s: %s") + " | %s") % (addr, code, name, bl_getlang ("Excepted country: %s=%s") % (code, vh.GetIPCN (addr) or "??")))
 
 			if not nick:
 				bl_stat ["except"] += 1
@@ -1001,9 +1002,12 @@ def OnNewConn (addr):
 	bl_stat ["connect"] += 1
 	code = vh.GetIPCC (addr)
 
-	if bl_conf ["code_block"][0] and code and str ().join ([" ", code, " "]) in str ().join ([" ", bl_conf ["code_block"][0], " "]):
+	if not code:
+		code = "??"
+
+	if bl_conf ["code_block"][0] and str ().join ([" ", code, " "]) in str ().join ([" ", bl_conf ["code_block"][0], " "]):
 		if bl_waitfeed (addr):
-			bl_notify (bl_getlang ("Blocking blacklisted connection from %s.%s: %s") % (addr, code, bl_getlang ("Blocked country")))
+			bl_notify (bl_getlang ("Blocking blacklisted connection from %s.%s: %s") % (addr, code, bl_getlang ("Blocked country: %s=%s") % (code, vh.GetIPCN (addr) or "??")))
 
 		bl_stat ["block"] += 1
 		return 0
@@ -1045,6 +1049,10 @@ def OnUserLogin (nick):
 		return 1
 
 	code = vh.GetUserCC (nick)
+
+	if not code:
+		code = "??"
+
 	intaddr = bl_addrtoint (addr)
 	addrpos = intaddr >> 24
 
@@ -1120,6 +1128,10 @@ def OnParsedMsgChat (nick, data):
 		return 1
 
 	code = vh.GetUserCC (nick)
+
+	if not code:
+		code = "??"
+
 	intaddr = bl_addrtoint (addr)
 	addrpos = intaddr >> 24
 	size = 0
@@ -1211,7 +1223,7 @@ def OnOperatorCommand (user, data):
 				for item in bl_prox [pos]:
 					if item [2] < 3:
 						size += 1
-						out += (" [*] " + bl_getlang ("IP: %s.%s") + " | " + bl_getlang ("Status: %s") + " | " + bl_getlang ("Time: %s") + " | " + bl_getlang ("Chat: %s") + " | " + bl_getlang ("Users: %s") + "\r\n") % (item [0], vh.GetIPCC (item [0]), (bl_getlang ("Queued") if not item [2] else (bl_getlang ("Waiting") if item [2] == 1 else bl_getlang ("Done"))), time.strftime ("%H:%M:%S", time.localtime (item [3])), bl_getlang ("Yes") if item [4] else bl_getlang ("No"), (bl_getlang ("None") if item [2] == 2 else ", ".join (item [1])))
+						out += (" [*] " + bl_getlang ("IP: %s.%s") + " | " + bl_getlang ("Status: %s") + " | " + bl_getlang ("Time: %s") + " | " + bl_getlang ("Chat: %s") + " | " + bl_getlang ("Users: %s") + "\r\n") % (item [0], vh.GetIPCC (item [0]) or "??", (bl_getlang ("Queued") if not item [2] else (bl_getlang ("Waiting") if item [2] == 1 else bl_getlang ("Done"))), time.strftime ("%H:%M:%S", time.localtime (item [3])), bl_getlang ("Yes") if item [4] else bl_getlang ("No"), (bl_getlang ("None") if item [2] == 2 else ", ".join (item [1])))
 
 			if size:
 				out = bl_getlang ("Waiting proxy lookups") + ":\r\n\r\n" + out
@@ -1229,7 +1241,7 @@ def OnOperatorCommand (user, data):
 				out, mins = (bl_getlang ("Waiting feed list") + ":\r\n\r\n"), (bl_conf ["time_feed"][0] * 60)
 
 				for item in bl_feed:
-					out += (" [*] " + bl_getlang ("IP: %s.%s") + " | " + bl_getlang ("Expires: %s") + "\r\n") % (item [0], vh.GetIPCC (item [0]), time.strftime ("%d/%m %H:%M", time.localtime (item [1] + mins)))
+					out += (" [*] " + bl_getlang ("IP: %s.%s") + " | " + bl_getlang ("Expires: %s") + "\r\n") % (item [0], vh.GetIPCC (item [0]) or "??", time.strftime ("%d/%m %H:%M", time.localtime (item [1] + mins)))
 
 				out += ("\r\n " + bl_getlang ("Total: %s") + "\r\n") % str (len (bl_feed))
 
@@ -1255,10 +1267,10 @@ def OnOperatorCommand (user, data):
 			for id, item in enumerate (bl_feed):
 				if item [0] == addr:
 					bl_feed.pop (id)
-					bl_reply (user, bl_getlang ("Waiting feed list item deleted: %s.%s") % (addr, vh.GetIPCC (addr)))
+					bl_reply (user, bl_getlang ("Waiting feed list item deleted: %s.%s") % (addr, vh.GetIPCC (addr) or "??"))
 					return 0
 
-			bl_reply (user, bl_getlang ("Waiting feed list out of item: %s.%s") % (addr, vh.GetIPCC (addr)))
+			bl_reply (user, bl_getlang ("Waiting feed list out of item: %s.%s") % (addr, vh.GetIPCC (addr) or "??"))
 			return 0
 
 		if data [4:8] == "find":
@@ -1341,8 +1353,8 @@ def OnOperatorCommand (user, data):
 
 						out = bl_getlang ("Item deleted from list") + ":\r\n"
 						out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
-						out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]))
-						out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]))
+						out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]) or "??")
+						out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]) or "??")
 						out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if item [3] else bl_getlang ("Notify"))
 
 						bl_reply (user, out)
@@ -1358,6 +1370,9 @@ def OnOperatorCommand (user, data):
 
 			code = vh.GetIPCC (data [9:])
 
+			if not code:
+				code = "??"
+
 			if code == "L1" or code == "P1":
 				bl_reply (user, bl_getlang ("Local or private IP specified: %s.%s") % (data [9:], code))
 				return 0
@@ -1371,10 +1386,10 @@ def OnOperatorCommand (user, data):
 			res = bl_lookup (res [1])
 
 			if res [0]:
-				bl_reply (user, bl_getlang ("Public proxy detected: %s.%s") % (data [9:], vh.GetIPCC (data [9:])))
+				bl_reply (user, bl_getlang ("Public proxy detected: %s.%s") % (data [9:], vh.GetIPCC (data [9:]) or "??"))
 			else:
 				if str (res [1]).isdigit ():
-					bl_reply (user, bl_getlang ("Not enough matches for %s.%s: %s of %s") % (data [9:], vh.GetIPCC (data [9:]), str (res [1]), str (bl_conf ["prox_match"][0])))
+					bl_reply (user, bl_getlang ("Not enough matches for %s.%s: %s of %s") % (data [9:], vh.GetIPCC (data [9:]) or "??", str (res [1]), str (bl_conf ["prox_match"][0])))
 				else:
 					bl_reply (user, res [1])
 
@@ -1707,8 +1722,8 @@ def OnOperatorCommand (user, data):
 
 					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
-					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr))
-					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (hiaddr, vh.GetIPCC (hiaddr))
+					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (hiaddr, vh.GetIPCC (hiaddr) or "??")
 					out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_mylist"][0] else bl_getlang ("Notify"))
 
 			bl_reply (user, out)
@@ -1734,8 +1749,8 @@ def OnOperatorCommand (user, data):
 					out = bl_getlang ("Item already in list") + ":\r\n"
 					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
-					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]))
-					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]))
+					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]) or "??")
 					out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_mylist"][0] else bl_getlang ("Notify"))
 
 					bl_reply (user, out)
@@ -1749,8 +1764,8 @@ def OnOperatorCommand (user, data):
 			out = bl_getlang ("Item added to list") + ":\r\n"
 			out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (len (bl_myli) - 1)
 			out += ("\r\n [*] " + bl_getlang ("Title: %s")) % (pars [0][2] or bl_getlang ("My item"))
-			out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]))
-			out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]))
+			out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]) or "??")
+			out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]) or "??")
 			out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_mylist"][0] else bl_getlang ("Notify"))
 
 			bl_reply (user, out)
@@ -1772,8 +1787,8 @@ def OnOperatorCommand (user, data):
 				out = bl_getlang ("Item deleted from list") + ":\r\n"
 				out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
 				out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
-				out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr))
-				out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (hiaddr, vh.GetIPCC (hiaddr))
+				out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr) or "??")
+				out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (hiaddr, vh.GetIPCC (hiaddr) or "??")
 				out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_mylist"][0] else bl_getlang ("Notify"))
 
 				bl_reply (user, out)
@@ -1794,8 +1809,8 @@ def OnOperatorCommand (user, data):
 
 					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
-					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr))
-					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s") + "\r\n") % (hiaddr, vh.GetIPCC (hiaddr))
+					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s") + "\r\n") % (hiaddr, vh.GetIPCC (hiaddr) or "??")
 
 			bl_reply (user, out)
 			return 0
@@ -1820,8 +1835,8 @@ def OnOperatorCommand (user, data):
 					out = bl_getlang ("Item already in list") + ":\r\n"
 					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
-					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]))
-					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s") + "\r\n") % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]))
+					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s") + "\r\n") % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]) or "??")
 
 					bl_reply (user, out)
 					return 0
@@ -1834,8 +1849,8 @@ def OnOperatorCommand (user, data):
 			out = bl_getlang ("Item added to list") + ":\r\n"
 			out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (len (bl_exli) - 1)
 			out += ("\r\n [*] " + bl_getlang ("Title: %s")) % (pars [0][2] or bl_getlang ("Exception"))
-			out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]))
-			out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s") + "\r\n") % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]))
+			out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]) or "??")
+			out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s") + "\r\n") % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]) or "??")
 
 			bl_reply (user, out)
 			return 0
@@ -1870,8 +1885,8 @@ def OnOperatorCommand (user, data):
 				out = bl_getlang ("Item deleted from list") + ":\r\n"
 				out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
 				out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
-				out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr))
-				out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s") + "\r\n") % (hiaddr, vh.GetIPCC (hiaddr))
+				out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr) or "??")
+				out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s") + "\r\n") % (hiaddr, vh.GetIPCC (hiaddr) or "??")
 
 				bl_reply (user, out)
 			else:
@@ -2044,7 +2059,7 @@ def OnTimer (msec):
 							os.system (bl_defs ["curlreq"].decode ("hex") % (str (1), str (1), str (bl_conf ["time_down"][0]), str (bl_conf ["time_down"][0] * 2), bl_useragent (True), "", os.path.join (bl_defs ["datadir"], item [0]), (bl_defs ["ipintel"].decode ("hex") % (bl_conf ["prox_email"][0], item [0])))) # bl_defs ["referer"].decode ("hex")
 							bl_prox [pos][id][2], bl_prox [pos][id][3] = 1, now
 						except:
-							bl_notify (bl_getlang ("Failed proxy detection for %s.%s: %s") % (item [0], vh.GetIPCC (item [0]), bl_getlang ("Failed to execute command")))
+							bl_notify (bl_getlang ("Failed proxy detection for %s.%s: %s") % (item [0], vh.GetIPCC (item [0]) or "??", bl_getlang ("Failed to execute command")))
 							dels.insert (0, [pos, id])
 				elif item [2] == 1:
 					name = os.path.join (bl_defs ["datadir"], item [0])
@@ -2068,6 +2083,9 @@ def OnTimer (msec):
 
 							keep = False
 							code = vh.GetIPCC (item [0])
+
+							if not code:
+								code = "??"
 
 							if file:
 								data = None

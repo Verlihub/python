@@ -146,8 +146,8 @@ Show my list|
 New my item|
 Delete my item|
 My items: %s|
-Excepted country|
-Blocked country|
+Excepted country: %s=%s|
+Blocked country: %s=%s|
 User nick to receive all feed messages|
 Space separated country codes to block|
 Space separated country codes to except|
