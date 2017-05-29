@@ -206,3 +206,8 @@ Blacklisted chat exception from %s with IP %s.%s: %s|
 Checking logged in user from IP %s.%s: %s|
 Checking chat user from IP %s.%s: %s|
 Local or private IP specified: %s.%s|
+Maximum number of proxy lookups per day|
+Resetting proxy lookup quote limit: %s|
+Proxy lookup quote limit reached on logged in user from IP %s.%s: %s|
+Proxy lookup quote limit reached on chat user from IP %s.%s: %s|
+Proxy lookup quote|

@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.2.7
+# Blacklist 1.2.2.8
 # © 2010-2017 RoLex
 # Thanks to Frog
 
@@ -70,12 +70,13 @@
 # 1.2.2.5 - Added support for delayed main chat messages
 # 1.2.2.6 - Fixed bypass of public proxy lookup for local and private IP addresses in chat mode
 # 1.2.2.7 - Added country code translation to some messages
+# 1.2.2.8 - Added "prox_quote" configuration to limit amount of public proxy lookups per day
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.2.7", # todo: dont forget to update
+	"version": "1.2.2.8", # todo: dont forget to update
 	"curlver": ["curl", "-V"],
 	"curlreq": "6375726c202d47202d4c202d2d6d61782d726564697273202573202d2d7265747279202573202d2d636f6e6e6563742d74696d656f7574202573202d6d202573202d412022257322202d652022257322202d73202d6f202225732220222573222026",
 	"ipintel": "687474703a2f2f636865636b2e6765746970696e74656c2e6e65742f636865636b2e7068703f666f726d61743d6a736f6e26636f6e746163743d25732669703d2573",
@@ -84,6 +85,7 @@ bl_defs = {
 	"botdesc": "3c426c61636b6c69737420563a25732c4d3a412c483a302f302f312c533a303e",
 	"datadir": os.path.join (vh.basedir, "blackdata"),
 	"timersec": 60,
+	"quotesec": 60 * 60 * 24,
 	"delwait": 60,
 	"prevfeed": 60
 }
@@ -290,7 +292,8 @@ bl_lang = {
 	198: "Blacklisted chat exception from %s with IP %s.%s: %s",
 	199: "Checking logged in user from IP %s.%s: %s",
 	200: "Checking chat user from IP %s.%s: %s",
-	201: "Local or private IP specified: %s.%s"
+	201: "Local or private IP specified: %s.%s",
+	202: "Maximum number of proxy lookups per day"
 }
 
 bl_conf = {
@@ -312,8 +315,9 @@ bl_conf = {
 	"prox_timer": [3, "int", 1, 300, "Seconds to process proxy lookup queue"],
 	"prox_queue": [100, "int", 1, 10000, "Maximum number of proxy lookups to enqueue"],
 	"prox_maxreq": [1, "int", 1, 100, "Maximum number of proxy lookups to send"],
+	"prox_quote": [500, "int", 0, 500000, "Maximum number of proxy lookups per day"],
 	"prox_nofail": [0, "int", 0, 1, "Disable proxy lookup failure notifications"],
-	"prox_debug": [0, "int", 0, 2, "Level of proxy lookup debug information"],
+	"prox_debug": [0, "int", 0, 3, "Level of proxy lookup debug information"],
 	"action_proxy": [1, "int", 0, 1, "Block action on public proxy detections"],
 	"action_mylist": [1, "int", 0, 1, "Block action on my list item detections"],
 	"except_proxy": [1, "int", 0, 1, "Exception usage on public proxy detections"],
@@ -326,6 +330,8 @@ bl_stat = {
 	"block": 0l,
 	"notify": 0l,
 	"except": 0l,
+	"lookup": 0l,
+	"quote": time.time (),
 	"update": time.time (),
 	"proxy": time.time ()
 }
@@ -1042,7 +1048,7 @@ def OnNewConn (addr):
 	return 1
 
 def OnUserLogin (nick):
-	global bl_conf, bl_stat, bl_item, bl_prox, bl_myli
+	global bl_defs, bl_conf, bl_stat, bl_item, bl_prox, bl_myli
 	addr = vh.GetUserIP (nick)
 
 	if not addr:
@@ -1109,6 +1115,22 @@ def OnUserLogin (nick):
 				size += 1
 
 	if bl_conf ["prox_lookup"][0] == 1 and size < bl_conf ["prox_queue"][0]:
+		if bl_conf ["prox_quote"][0] > 0: # check daily quote
+			if bl_stat ["lookup"] == 0: # first time
+				bl_stat ["quote"] = now
+			elif bl_stat ["lookup"] >= bl_conf ["prox_quote"][0]:
+				if now - bl_stat ["quote"] >= bl_defs ["quotesec"]:
+					if bl_conf ["prox_debug"][0] > 2:
+						bl_notify (bl_getlang ("Resetting proxy lookup quote limit: %s") % str (bl_conf ["prox_quote"][0]))
+
+					bl_stat ["lookup"], bl_stat ["quote"] = 0, now
+				else:
+					if bl_conf ["prox_debug"][0] > 1:
+						bl_notify (bl_getlang ("Proxy lookup quote limit reached on logged in user from IP %s.%s: %s") % (addr, code, nick))
+
+					return 1
+
+		bl_stat ["lookup"] = bl_stat ["lookup"] + 1
 		bl_prox [addrpos].append ([addr, [nick], 0, now, False])
 
 		if bl_conf ["prox_debug"][0] > 1:
@@ -1117,7 +1139,7 @@ def OnUserLogin (nick):
 	return 1
 
 def OnParsedMsgChat (nick, data):
-	global bl_conf, bl_prox, bl_stat
+	global bl_defs, bl_conf, bl_prox, bl_stat
 
 	if bl_conf ["prox_lookup"][0] < 2 or vh.GetUserClass (nick) >= bl_conf ["class_skip"][0]:
 		return 1
@@ -1153,7 +1175,25 @@ def OnParsedMsgChat (nick, data):
 				size += 1
 
 	if code != "L1" and code != "P1" and size < bl_conf ["prox_queue"][0]:
-		bl_prox [addrpos].append ([addr, [nick], 0, time.time (), True])
+		now = time.time ()
+
+		if bl_conf ["prox_quote"][0] > 0: # check daily quote
+			if bl_stat ["lookup"] == 0: # first time
+				bl_stat ["quote"] = now
+			elif bl_stat ["lookup"] >= bl_conf ["prox_quote"][0]:
+				if now - bl_stat ["quote"] >= bl_defs ["quotesec"]:
+					if bl_conf ["prox_debug"][0] > 2:
+						bl_notify (bl_getlang ("Resetting proxy lookup quote limit: %s") % str (bl_conf ["prox_quote"][0]))
+
+					bl_stat ["lookup"], bl_stat ["quote"] = 0, now
+				else:
+					if bl_conf ["prox_debug"][0] > 1:
+						bl_notify (bl_getlang ("Proxy lookup quote limit reached on chat user from IP %s.%s: %s") % (addr, code, nick))
+
+					return 1
+
+		bl_stat ["lookup"] = bl_stat ["lookup"] + 1
+		bl_prox [addrpos].append ([addr, [nick], 0, now, True])
 
 		if bl_conf ["prox_debug"][0] > 1:
 			bl_notify (bl_getlang ("Checking chat user from IP %s.%s: %s") % (addr, code, nick))
@@ -1208,6 +1248,7 @@ def OnOperatorCommand (user, data):
 			out += ("\r\n [*] " + bl_getlang ("Excepted connections: %s")) % str (bl_stat ["except"])
 			out += ("\r\n [*] " + bl_getlang ("Total connections: %s")) % str (bl_stat ["connect"])
 			out += ("\r\n [*] " + bl_getlang ("Waiting proxy lookups") + ": %s") % (bl_getlang ("%s of %s") % (str (wcurl), str (acurl)))
+			out += ("\r\n [*] " + bl_getlang ("Proxy lookup quote") + ": %s") % (bl_getlang ("%s of %s") % (str (bl_stat ["lookup"]), str (bl_conf ["prox_quote"][0])))
 			out += ("\r\n [*] " + bl_getlang ("Waiting feed list") + ": %s\r\n") % str (len (bl_feed))
 			bl_reply (user, out)
 			return 0
