@@ -293,7 +293,11 @@ bl_lang = {
 	199: "Checking logged in user from IP %s.%s: %s",
 	200: "Checking chat user from IP %s.%s: %s",
 	201: "Local or private IP specified: %s.%s",
-	202: "Maximum number of proxy lookups per day"
+	202: "Maximum number of proxy lookups per day",
+	203: "Resetting proxy lookup quote limit: %s",
+	204: "Proxy lookup quote limit reached on logged in user from IP %s.%s: %s",
+	205: "Proxy lookup quote limit reached on chat user from IP %s.%s: %s",
+	206: "Proxy lookup quote"
 }
 
 bl_conf = {
