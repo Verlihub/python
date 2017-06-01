@@ -403,9 +403,9 @@ def bl_main ():
 		") engine = myisam default character set utf8 collate utf8_unicode_ci"
 	)
 
-	vh.SQL ("alter ignore table `py_bl_list` add column `off` tinyint(1) unsigned not null default 0 after `update`")
-	vh.SQL ("alter ignore table `py_bl_list` add column `action` tinyint(1) unsigned not null default 1 after `off`")
-	vh.SQL ("alter ignore table `py_bl_list` add column `except` tinyint(1) unsigned not null default 1 after `action`")
+	vh.SQL ("alter table `py_bl_list` add column `off` tinyint(1) unsigned not null default 0 after `update`")
+	vh.SQL ("alter table `py_bl_list` add column `action` tinyint(1) unsigned not null default 1 after `off`")
+	vh.SQL ("alter table `py_bl_list` add column `except` tinyint(1) unsigned not null default 1 after `action`")
 
 	for id, item in bl_lang.iteritems ():
 		vh.SQL ("insert ignore into `py_bl_lang` (`id`, `value`) values (%s, '%s')" % (str (id), bl_repsql (item)))
