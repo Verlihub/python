@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.2.8
+# Blacklist 1.2.2.9
 # © 2010-2017 RoLex
 # Thanks to Frog
 
@@ -71,12 +71,13 @@
 # 1.2.2.6 - Fixed bypass of public proxy lookup for local and private IP addresses in chat mode
 # 1.2.2.7 - Added country code translation to some messages
 # 1.2.2.8 - Added "prox_quote" configuration to limit amount of public proxy lookups per day
+# 1.2.2.9 - Added prioritization of public proxy and my lists
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.2.8", # todo: dont forget to update
+	"version": "1.2.2.9", # todo: dont forget to update
 	"curlver": ["curl", "-V"],
 	"curlreq": "6375726c202d47202d4c202d2d6d61782d726564697273202573202d2d7265747279202573202d2d636f6e6e6563742d74696d656f7574202573202d6d202573202d412022257322202d652022257322202d73202d6f202225732220222573222026",
 	"ipintel": "687474703a2f2f636865636b2e6765746970696e74656c2e6e65742f636865636b2e7068703f666f726d61743d6a736f6e26636f6e746163743d25732669703d2573",
@@ -1008,7 +1009,7 @@ def UnLoad ():
 	return 1
 
 def OnNewConn (addr):
-	global bl_conf, bl_stat, bl_item, bl_myli
+	global bl_conf, bl_stat, bl_item, bl_myli, bl_prox
 	bl_stat ["connect"] += 1
 	code = vh.GetIPCC (addr)
 
@@ -1022,23 +1023,19 @@ def OnNewConn (addr):
 		bl_stat ["block"] += 1
 		return 0
 
-	#if code == "L1" or code == "P1":
-		#return 1
-
 	intaddr = bl_addrtoint (addr)
+	addrpos = intaddr >> 24
 
-	for item in bl_item [intaddr >> 24]:
-		if intaddr >= item [0] and intaddr <= item [1]:
-			if not item [3]: # notification only
-				if bl_waitfeed (addr):
-					bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, item [2]))
+	if code != "L1" and code != "P1" and bl_conf ["prox_lookup"][0] and time.time () - vh.starttime >= bl_conf ["prox_start"][0] * 60: # check proxy
+		for pos in range (len (bl_prox)):
+			for id, item in enumerate (bl_prox [pos]):
+				if pos == addrpos and addr == item [0]:
+					if item [2] == 2:
+						return bl_excheck (addr, intaddr, code, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0])
 
-				bl_stat ["notify"] += 1
-				return 1
+					return 1
 
-			return bl_excheck (addr, intaddr, code, item [2], item [4])
-
-	for item in bl_myli:
+	for item in bl_myli: # my list first
 		if intaddr >= item [0] and intaddr <= item [1]:
 			if not bl_conf ["action_mylist"][0]: # notification only
 				if bl_waitfeed (addr):
@@ -1048,6 +1045,17 @@ def OnNewConn (addr):
 				return 1
 
 			return bl_excheck (addr, intaddr, code, item [2], bl_conf ["except_mylist"][0])
+
+	for item in bl_item [addrpos]:
+		if intaddr >= item [0] and intaddr <= item [1]:
+			if not item [3]: # notification only
+				if bl_waitfeed (addr):
+					bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, item [2]))
+
+				bl_stat ["notify"] += 1
+				return 1
+
+			return bl_excheck (addr, intaddr, code, item [2], item [4])
 
 	return 1
 
@@ -1066,9 +1074,9 @@ def OnUserLogin (nick):
 	intaddr = bl_addrtoint (addr)
 	addrpos = intaddr >> 24
 
-	for item in bl_item [addrpos]:
+	for item in bl_myli: # my list first
 		if intaddr >= item [0] and intaddr <= item [1]:
-			if not item [3]: # notification only
+			if not bl_conf ["action_mylist"][0]: # notification only
 				if bl_waitfeed (addr, True):
 					bl_notify (bl_getlang ("Notifying blacklisted login from %s with IP %s.%s: %s") % (nick, addr, code, item [2]))
 
@@ -1079,9 +1087,9 @@ def OnUserLogin (nick):
 
 			break
 
-	for item in bl_myli:
+	for item in bl_item [addrpos]:
 		if intaddr >= item [0] and intaddr <= item [1]:
-			if not bl_conf ["action_mylist"][0]: # notification only
+			if not item [3]: # notification only
 				if bl_waitfeed (addr, True):
 					bl_notify (bl_getlang ("Notifying blacklisted login from %s with IP %s.%s: %s") % (nick, addr, code, item [2]))
 
@@ -1108,8 +1116,8 @@ def OnUserLogin (nick):
 				if item [2] < 2:
 					if not nick in item [1]:
 						bl_prox [pos][id][1].append (nick)
-				elif item [2] == 2:
-					return bl_excheck (addr, intaddr, code, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick)
+				#elif item [2] == 2: # checked on connect
+					#return bl_excheck (addr, intaddr, code, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick)
 				#elif item [2] == 3: # exception
 					#pass
 
