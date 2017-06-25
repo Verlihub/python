@@ -72,6 +72,7 @@
 # 1.2.2.7 - Added country code translation to some messages
 # 1.2.2.8 - Added "prox_quote" configuration to limit amount of public proxy lookups per day
 # 1.2.2.9 - Added prioritization of public proxy and my lists
+# 1.2.2.9 - Removed break on first match
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
@@ -1027,13 +1028,12 @@ def OnNewConn (addr):
 	addrpos = intaddr >> 24
 
 	if code != "L1" and code != "P1" and bl_conf ["prox_lookup"][0] and time.time () - vh.starttime >= bl_conf ["prox_start"][0] * 60: # check proxy
-		for pos in range (len (bl_prox)):
-			for id, item in enumerate (bl_prox [pos]):
-				if pos == addrpos and addr == item [0]:
-					if item [2] == 2:
-						return bl_excheck (addr, intaddr, code, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0])
+		for id, item in enumerate (bl_prox [addrpos]):
+			if addr == item [0]:
+				if item [2] == 2 and not bl_excheck (addr, intaddr, code, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0]):
+					return 0
 
-					return 1
+				break # dont return
 
 	for item in bl_myli: # my list first
 		if intaddr >= item [0] and intaddr <= item [1]:
@@ -1042,9 +1042,10 @@ def OnNewConn (addr):
 					bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, item [2]))
 
 				bl_stat ["notify"] += 1
-				return 1
+			elif not bl_excheck (addr, intaddr, code, item [2], bl_conf ["except_mylist"][0]):
+				return 0
 
-			return bl_excheck (addr, intaddr, code, item [2], bl_conf ["except_mylist"][0])
+			# dont break or return
 
 	for item in bl_item [addrpos]:
 		if intaddr >= item [0] and intaddr <= item [1]:
@@ -1053,9 +1054,10 @@ def OnNewConn (addr):
 					bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, item [2]))
 
 				bl_stat ["notify"] += 1
-				return 1
+			elif not bl_excheck (addr, intaddr, code, item [2], item [4]):
+				return 0
 
-			return bl_excheck (addr, intaddr, code, item [2], item [4])
+			# dont break or return
 
 	return 1
 
@@ -1072,7 +1074,6 @@ def OnUserLogin (nick):
 		code = "??"
 
 	intaddr = bl_addrtoint (addr)
-	addrpos = intaddr >> 24
 
 	for item in bl_myli: # my list first
 		if intaddr >= item [0] and intaddr <= item [1]:
@@ -1083,9 +1084,9 @@ def OnUserLogin (nick):
 					if bl_conf ["action_extry"][0]:
 						bl_extry (addr, code, intaddr, item [0], item [1])
 
-				return 1
+			# dont break or return
 
-			break
+	addrpos = intaddr >> 24
 
 	for item in bl_item [addrpos]:
 		if intaddr >= item [0] and intaddr <= item [1]:
@@ -1096,9 +1097,7 @@ def OnUserLogin (nick):
 					if bl_conf ["action_extry"][0]:
 						bl_extry (addr, code, intaddr, item [0], item [1])
 
-				return 1
-
-			break
+			# dont break or return
 
 	if code == "L1" or code == "P1" or vh.GetUserClass (nick) >= bl_conf ["class_skip"][0]:
 		return 1
@@ -1110,21 +1109,20 @@ def OnUserLogin (nick):
 
 	size = 0
 
-	for pos in range (len (bl_prox)):
-		for id, item in enumerate (bl_prox [pos]):
-			if pos == addrpos and addr == item [0]:
-				if item [2] < 2:
-					if not nick in item [1]:
-						bl_prox [pos][id][1].append (nick)
-				#elif item [2] == 2: # checked on connect
-					#return bl_excheck (addr, intaddr, code, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick)
-				#elif item [2] == 3: # exception
-					#pass
+	for id, item in enumerate (bl_prox [addrpos]):
+		if addr == item [0]:
+			if item [2] < 2:
+				if not nick in item [1]:
+					bl_prox [addrpos][id][1].append (nick)
+			#elif item [2] == 2: # checked on connect
+				#return bl_excheck (addr, intaddr, code, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick)
+			#elif item [2] == 3: # exception
+				#pass
 
-				return 1
+			return 1 # nothing to do
 
-			if not item [2]:
-				size += 1
+		if not item [2]:
+			size += 1
 
 	if bl_conf ["prox_lookup"][0] == 1 and size < bl_conf ["prox_queue"][0]:
 		if bl_conf ["prox_quote"][0] > 0: # check daily quote
@@ -1166,27 +1164,29 @@ def OnParsedMsgChat (nick, data):
 	if not code:
 		code = "??"
 
+	if code == "L1" or code == "P1":
+		return 1
+
 	intaddr = bl_addrtoint (addr)
 	addrpos = intaddr >> 24
 	size = 0
 
-	for pos in range (len (bl_prox)):
-		for id, item in enumerate (bl_prox [pos]):
-			if pos == addrpos and addr == item [0]:
-				if item [2] < 2:
-					if not nick in item [1]:
-						bl_prox [pos][id][1].append (nick)
-				elif item [2] == 2:
-					return bl_excheck (addr, intaddr, code, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick, True)
-				#elif item [2] == 3: # exception
-					#pass
+	for id, item in enumerate (bl_prox [addrpos]):
+		if addr == item [0]:
+			if item [2] < 2:
+				if not nick in item [1]:
+					bl_prox [addrpos][id][1].append (nick)
+			elif item [2] == 2:
+				return bl_excheck (addr, intaddr, code, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick, True)
+			#elif item [2] == 3: # exception
+				#pass
 
-				return 1
+			return 1 # nothing to do
 
-			if not item [2]:
-				size += 1
+		if not item [2]:
+			size += 1
 
-	if code != "L1" and code != "P1" and size < bl_conf ["prox_queue"][0]:
+	if size < bl_conf ["prox_queue"][0]:
 		now = time.time ()
 
 		if bl_conf ["prox_quote"][0] > 0: # check daily quote
