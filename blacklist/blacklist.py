@@ -970,6 +970,9 @@ def bl_getasn (addr):
 		asn = vh.GetIPASN (addr)
 
 		if asn:
+			if re.match ("^AS\d+", asn):
+				asn = "https://ipinfo.io/" + asn
+
 			return asn
 		else:
 			return bl_getlang ("Information not found")
