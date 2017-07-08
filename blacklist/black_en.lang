@@ -211,3 +211,8 @@ Resetting proxy lookup quote limit: %s|
 Proxy lookup quote limit reached on logged in user from IP %s.%s: %s|
 Proxy lookup quote limit reached on chat user from IP %s.%s: %s|
 Proxy lookup quote|
+Enable GeoIP ASN information on proxy detection|
+Enable GeoIP ASN information on exception lookup|
+Information not found|
+Function not supported|
+ASN: %s|

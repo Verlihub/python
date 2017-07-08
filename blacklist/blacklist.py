@@ -73,6 +73,8 @@
 # 1.2.2.8 - Added "prox_quote" configuration to limit amount of public proxy lookups per day
 # 1.2.2.9 - Added prioritization of public proxy and my lists
 # 1.2.2.9 - Removed break on first match
+# 1.2.2.9 - Added "prox_getasn" configuration to show GeoIP ASN information on proxy detection
+# 1.2.2.9 - Added "extry_getasn" configuration to show GeoIP ASN information on exception lookup
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
@@ -299,7 +301,12 @@ bl_lang = {
 	203: "Resetting proxy lookup quote limit: %s",
 	204: "Proxy lookup quote limit reached on logged in user from IP %s.%s: %s",
 	205: "Proxy lookup quote limit reached on chat user from IP %s.%s: %s",
-	206: "Proxy lookup quote"
+	206: "Proxy lookup quote",
+	207: "Enable GeoIP ASN information on proxy detection",
+	208: "Enable GeoIP ASN information on exception lookup",
+	209: "Information not found",
+	210: "Function not supported",
+	211: "ASN: %s"
 }
 
 bl_conf = {
@@ -323,12 +330,14 @@ bl_conf = {
 	"prox_maxreq": [1, "int", 1, 100, "Maximum number of proxy lookups to send"],
 	"prox_quote": [500, "int", 0, 500000, "Maximum number of proxy lookups per day"],
 	"prox_nofail": [0, "int", 0, 1, "Disable proxy lookup failure notifications"],
+	"prox_getasn": [0, "int", 0, 1, "Enable GeoIP ASN information on proxy detection"],
 	"prox_debug": [0, "int", 0, 3, "Level of proxy lookup debug information"],
 	"action_proxy": [1, "int", 0, 1, "Block action on public proxy detections"],
 	"action_mylist": [1, "int", 0, 1, "Block action on my list item detections"],
 	"except_proxy": [1, "int", 0, 1, "Exception usage on public proxy detections"],
 	"except_mylist": [1, "int", 0, 1, "Exception usage on my list item detections"],
-	"action_extry": [0, "int", 0, 1, "Run exception lookup on notification actions"]
+	"action_extry": [0, "int", 0, 1, "Run exception lookup on notification actions"],
+	"extry_getasn": [0, "int", 0, 1, "Enable GeoIP ASN information on exception lookup"]
 }
 
 bl_stat = {
@@ -717,13 +726,16 @@ def bl_makedir (dir):
 	return [True, dir]
 
 def bl_extry (addr, code, intaddr, loaddr, hiaddr):
-	global bl_exli
+	global bl_conf, bl_exli
 
 	for item in bl_exli:
 		if intaddr >= item [0] and intaddr <= item [1]:
 			return
 
 	bl_notify (bl_getlang ("Exception list out of IP %s.%s: %s") % (addr, code, bl_inttoaddr (loaddr) + "-" + bl_inttoaddr (hiaddr)))
+
+	if bl_conf ["extry_getasn"][0]:
+		bl_notify (bl_getlang ("ASN: %s") % bl_getasn (addr))
 
 def bl_excheck (addr, intaddr, code, name, exuse, nick = None, chat = False):
 	global bl_conf, bl_stat, bl_exli
@@ -952,6 +964,17 @@ def bl_validaddr (addr):
 		num += 1
 
 	return (1 if num == 4 else 0)
+
+def bl_getasn (addr):
+	try:
+		asn = vh.GetIPASN (addr)
+
+		if asn:
+			return asn
+		else:
+			return bl_getlang ("Information not found")
+	except:
+		return bl_getlang ("Function not supported")
 
 def bl_useragent (rand = False):
 	global bl_defs
@@ -1440,6 +1463,9 @@ def OnOperatorCommand (user, data):
 
 			if res [0]:
 				bl_reply (user, bl_getlang ("Public proxy detected: %s.%s") % (data [9:], vh.GetIPCC (data [9:]) or "??"))
+
+				if bl_conf ["prox_getasn"][0]:
+					bl_reply (user, bl_getlang ("ASN: %s") % bl_getasn (data [9:]))
 			else:
 				if str (res [1]).isdigit ():
 					bl_reply (user, bl_getlang ("Not enough matches for %s.%s: %s of %s") % (data [9:], vh.GetIPCC (data [9:]) or "??", str (res [1]), str (bl_conf ["prox_match"][0])))
@@ -2155,6 +2181,10 @@ def OnTimer (msec):
 
 									if res [0]:
 										bl_notify (bl_getlang ("Public proxy detected: %s.%s") % (item [0], code)) # todo: must be controlled by bl_waitfeed
+
+										if bl_conf ["prox_getasn"][0]:
+											bl_notify (bl_getlang ("ASN: %s") % bl_getasn (item [0]))
+
 										intaddr = bl_addrtoint (item [0])
 										keep = True
 

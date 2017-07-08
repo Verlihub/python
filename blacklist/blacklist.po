@@ -3,8 +3,8 @@ msgstr ""
 "Project-Id-Version: Blacklist\n"
 "Project-Version: 1.2.2\n"
 "Report-Msgid-Bugs-To: RoLex <webmaster@feardc.net>\n"
-"POT-Creation-Date: 2017-05-29 11:47+0200\n"
-"PO-Revision-Date: 2017-05-29 11:47+0200\n"
+"POT-Creation-Date: 2017-07-08 11:47+0200\n"
+"PO-Revision-Date: 2017-07-08 11:47+0200\n"
 "Last-Translator: RoLex <webmaster@feardc.net>\n"
 "Language-Team: RoLex <webmaster@feardc.net>\n"
 "Language: en_GB\n"
@@ -632,4 +632,19 @@ msgid "Proxy lookup quote limit reached on chat user from IP %s.%s: %s"
 msgstr ""
 
 msgid "Proxy lookup quote"
+msgstr ""
+
+msgid "Enable GeoIP ASN information on proxy detection"
+msgstr ""
+
+msgid "Enable GeoIP ASN information on exception lookup"
+msgstr ""
+
+msgid "Information not found"
+msgstr ""
+
+msgid "Function not supported"
+msgstr ""
+
+msgid "ASN: %s"
 msgstr ""
