@@ -1,6 +1,6 @@
 # Language: en_GB
 # Charset: CP1252
-# Version: 1.2.2
+# Version: 1.2.3
 # Author: RoLex
 # Email: webmaster@feardc.net
 
@@ -216,3 +216,6 @@ Enable GeoIP ASN information on exception lookup|
 Information not found|
 Function not supported|
 ASN: %s|
+Disable or enable item|
+Enabled|
+Disabled|

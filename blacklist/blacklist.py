@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.2.9
+# Blacklist 1.2.3.0
 # © 2010-2017 RoLex
 # Thanks to Frog
 
@@ -76,11 +76,14 @@
 # 1.2.2.9 - Added "prox_getasn" configuration to show GeoIP ASN information on proxy detection
 # 1.2.2.9 - Added "extry_getasn" configuration to show GeoIP ASN information on exception lookup
 # -------
+# 1.2.3.0 - Added "myoff" and "exoff" commands to disable or enable items in my and exception lists
+# 1.2.3.0 - Added results from my list to find action
+# -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.2.9", # todo: dont forget to update
+	"version": "1.2.3.0", # todo: dont forget to update
 	"curlver": ["curl", "-V"],
 	"curlreq": "6375726c202d47202d4c202d2d6d61782d726564697273202573202d2d7265747279202573202d2d636f6e6e6563742d74696d656f7574202573202d6d202573202d412022257322202d652022257322202d73202d6f202225732220222573222026",
 	"ipintel": "687474703a2f2f636865636b2e6765746970696e74656c2e6e65742f636865636b2e7068703f666f726d61743d6a736f6e26636f6e746163743d25732669703d2573",
@@ -306,7 +309,10 @@ bl_lang = {
 	208: "Enable GeoIP ASN information on exception lookup",
 	209: "Information not found",
 	210: "Function not supported",
-	211: "ASN: %s"
+	211: "ASN: %s",
+	212: "Disable or enable item",
+	213: "Enabled",
+	214: "Disabled"
 }
 
 bl_conf = {
@@ -401,6 +407,7 @@ def bl_main ():
 			"`loaddr` int(10) unsigned not null,"\
 			"`hiaddr` int(10) unsigned not null,"\
 			"`title` varchar(255) collate utf8_unicode_ci null default null,"\
+			"`off` tinyint(1) unsigned not null default 0,"\
 			"unique `addr_index` (`loaddr`, `hiaddr`)"\
 		") engine = myisam default character set utf8 collate utf8_unicode_ci"
 	)
@@ -410,6 +417,7 @@ def bl_main ():
 			"`loaddr` int(10) unsigned not null,"\
 			"`hiaddr` int(10) unsigned not null,"\
 			"`title` varchar(255) collate utf8_unicode_ci null default null,"\
+			"`off` tinyint(1) unsigned not null default 0,"\
 			"unique `addr_index` (`loaddr`, `hiaddr`)"\
 		") engine = myisam default character set utf8 collate utf8_unicode_ci"
 	)
@@ -417,6 +425,8 @@ def bl_main ():
 	vh.SQL ("alter table `py_bl_list` add column `off` tinyint(1) unsigned not null default 0 after `update`")
 	vh.SQL ("alter table `py_bl_list` add column `action` tinyint(1) unsigned not null default 1 after `off`")
 	vh.SQL ("alter table `py_bl_list` add column `except` tinyint(1) unsigned not null default 1 after `action`")
+	vh.SQL ("alter table `py_bl_myli` add column `off` tinyint(1) unsigned not null default 0 after `title`")
+	vh.SQL ("alter table `py_bl_exli` add column `off` tinyint(1) unsigned not null default 0 after `title`")
 
 	for id, item in bl_lang.iteritems ():
 		vh.SQL ("insert ignore into `py_bl_lang` (`id`, `value`) values (%s, '%s')" % (str (id), bl_repsql (item)))
@@ -455,14 +465,14 @@ def bl_main ():
 
 	if sql and rows:
 		for item in rows:
-			bl_myli.append ([int (item [0]), int (item [1]), bl_getlang ("My item") if item [2] == "NULL" else item [2]])
+			bl_myli.append ([int (item [0]), int (item [1]), bl_getlang ("My item") if item [2] == "NULL" else item [2], int (item [3])])
 
 	out += " [*] %s: %s\r\n" % (bl_getlang ("My list"), str (len (rows)))
 	sql, rows = vh.SQL ("select * from `py_bl_exli`", 1000) # todo: dont forget about limit
 
 	if sql and rows:
 		for item in rows:
-			bl_exli.append ([int (item [0]), int (item [1]), bl_getlang ("Exception") if item [2] == "NULL" else item [2]])
+			bl_exli.append ([int (item [0]), int (item [1]), bl_getlang ("Exception") if item [2] == "NULL" else item [2], int (item [3])])
 
 	out += " [*] %s: %s\r\n" % (bl_getlang ("Exception"), str (len (rows)))
 
@@ -729,7 +739,7 @@ def bl_extry (addr, code, intaddr, loaddr, hiaddr):
 	global bl_conf, bl_exli
 
 	for item in bl_exli:
-		if intaddr >= item [0] and intaddr <= item [1]:
+		if not item [3] and intaddr >= item [0] and intaddr <= item [1]:
 			return
 
 	bl_notify (bl_getlang ("Exception list out of IP %s.%s: %s") % (addr, code, bl_inttoaddr (loaddr) + "-" + bl_inttoaddr (hiaddr)))
@@ -757,7 +767,7 @@ def bl_excheck (addr, intaddr, code, name, exuse, nick = None, chat = False):
 			return 1
 
 		for item in bl_exli:
-			if intaddr >= item [0] and intaddr <= item [1]:
+			if not item [3] and intaddr >= item [0] and intaddr <= item [1]:
 				if bl_waitfeed (addr):
 					if nick:
 						if chat:
@@ -1062,7 +1072,7 @@ def OnNewConn (addr):
 				break # dont return
 
 	for item in bl_myli: # my list first
-		if intaddr >= item [0] and intaddr <= item [1]:
+		if not item [3] and intaddr >= item [0] and intaddr <= item [1]:
 			if not bl_conf ["action_mylist"][0]: # notification only
 				if bl_waitfeed (addr):
 					bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, item [2]))
@@ -1102,7 +1112,7 @@ def OnUserLogin (nick):
 	intaddr = bl_addrtoint (addr)
 
 	for item in bl_myli: # my list first
-		if intaddr >= item [0] and intaddr <= item [1]:
+		if not item [3] and intaddr >= item [0] and intaddr <= item [1]:
 			if not bl_conf ["action_mylist"][0]: # notification only
 				if bl_waitfeed (addr, True):
 					bl_notify (bl_getlang ("Notifying blacklisted login from %s with IP %s.%s: %s") % (nick, addr, code, item [2]))
@@ -1259,7 +1269,7 @@ def OnOperatorCommand (user, data):
 			return 0
 
 		if data [4:8] == "stat":
-			size, lists, wcurl, acurl = 0, 0, 0, 0
+			size, lists, wcurl, acurl, myoff, exoff = 0, 0, 0, 0, 0, 0
 
 			for pos in range (len (bl_item)):
 				size += len (bl_item [pos])
@@ -1267,6 +1277,14 @@ def OnOperatorCommand (user, data):
 			for item in bl_list:
 				if not item [4]:
 					lists += 1
+
+			for item in bl_myli:
+				if not item [3]:
+					myoff += 1
+
+			for item in bl_exli:
+				if not item [3]:
+					exoff += 1
 
 			for pos in range (len (bl_prox)):
 				acurl += len (bl_prox [pos])
@@ -1279,8 +1297,8 @@ def OnOperatorCommand (user, data):
 			out += ("\r\n [*] " + bl_getlang ("Version: %s")) % bl_defs ["version"]
 			out += ("\r\n [*] " + bl_getlang ("Loaded lists: %s")) % (bl_getlang ("%s of %s") % (str (lists), str (len (bl_list))))
 			out += ("\r\n [*] " + bl_getlang ("Blacklisted items: %s")) % str (size)
-			out += ("\r\n [*] " + bl_getlang ("My items: %s")) % str (len (bl_myli))
-			out += ("\r\n [*] " + bl_getlang ("Excepted items: %s")) % str (len (bl_exli))
+			out += ("\r\n [*] " + bl_getlang ("My items: %s")) % (bl_getlang ("%s of %s") % (str (myoff), str (len (bl_myli))))
+			out += ("\r\n [*] " + bl_getlang ("Excepted items: %s")) % (bl_getlang ("%s of %s") % (str (exoff), str (len (bl_exli))))
 			out += ("\r\n [*] " + bl_getlang ("Blocked connections: %s")) % str (bl_stat ["block"])
 			out += ("\r\n [*] " + bl_getlang ("Notified connections: %s")) % str (bl_stat ["notify"])
 			out += ("\r\n [*] " + bl_getlang ("Excepted connections: %s")) % str (bl_stat ["except"])
@@ -1370,6 +1388,15 @@ def OnOperatorCommand (user, data):
 						if size >= bl_conf ["find_maxres"][0]:
 							break
 
+				if size < bl_conf ["find_maxres"][0] and bl_myli: # my list
+					for item in bl_myli:
+						if intaddr >= item [0] and intaddr <= item [1]:
+							out += " %s - %s : %s [%s] [%s]\r\n" % (bl_inttoaddr (item [0]), bl_inttoaddr (item [1]), item [2], bl_getlang ("Block") if bl_conf ["action_mylist"][0] else bl_getlang ("Notify"), bl_getlang ("Enabled") if not item [3] else bl_getlang ("Disabled"))
+							size += 1
+
+							if size >= bl_conf ["find_maxres"][0]:
+								break
+
 				if size:
 					bl_reply (user, (bl_getlang ("Results for IP: %s") + "\r\n\r\n%s") % (data [9:], out))
 				else:
@@ -1388,6 +1415,15 @@ def OnOperatorCommand (user, data):
 
 					if size >= bl_conf ["find_maxres"][0]:
 						break
+
+				if size < bl_conf ["find_maxres"][0] and bl_myli: # my list
+					for item in bl_myli:
+						if lowdata in item [2].lower ():
+							out += " %s - %s : %s [%s] [%s]\r\n" % (bl_inttoaddr (item [0]), bl_inttoaddr (item [1]), item [2], bl_getlang ("Block") if bl_conf ["action_mylist"][0] else bl_getlang ("Notify"), bl_getlang ("Enabled") if not item [3] else bl_getlang ("Disabled"))
+							size += 1
+
+							if size >= bl_conf ["find_maxres"][0]:
+								break
 
 				if size:
 					bl_reply (user, (bl_getlang ("Results for title: %s") + "\r\n\r\n%s") % (data [9:], out))
@@ -1806,6 +1842,7 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
 					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr) or "??")
 					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (hiaddr, vh.GetIPCC (hiaddr) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % (bl_getlang ("No") if not item [3] else bl_getlang ("Yes"))
 					out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_mylist"][0] else bl_getlang ("Notify"))
 
 			bl_reply (user, out)
@@ -1833,6 +1870,7 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
 					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]) or "??")
 					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % (bl_getlang ("No") if not item [3] else bl_getlang ("Yes"))
 					out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_mylist"][0] else bl_getlang ("Notify"))
 
 					bl_reply (user, out)
@@ -1840,7 +1878,7 @@ def OnOperatorCommand (user, data):
 
 			loaddr = bl_addrtoint (pars [0][0])
 			hiaddr = bl_addrtoint (pars [0][1] or pars [0][0])
-			bl_myli.append ([loaddr, hiaddr, pars [0][2] or bl_getlang ("My item")])
+			bl_myli.append ([loaddr, hiaddr, pars [0][2] or bl_getlang ("My item"), 0])
 			vh.SQL ("insert ignore into `py_bl_myli` (`loaddr`, `hiaddr`, `title`) values (%s, %s, %s)" % (str (loaddr), str (hiaddr), ("'" + bl_repsql (pars [0][2]) + "'" if pars [0][2] else "null")))
 
 			out = bl_getlang ("Item added to list") + ":\r\n"
@@ -1848,9 +1886,52 @@ def OnOperatorCommand (user, data):
 			out += ("\r\n [*] " + bl_getlang ("Title: %s")) % (pars [0][2] or bl_getlang ("My item"))
 			out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]) or "??")
 			out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]) or "??")
+			out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % bl_getlang ("No")
 			out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_mylist"][0] else bl_getlang ("Notify"))
 
 			bl_reply (user, out)
+			return 0
+
+		if data [4:9] == "myoff":
+			if data [10:].isdigit ():
+				id = int (data [10:])
+			else:
+				bl_reply (user, bl_getlang ("Missing command parameters: %s") % ("myoff <" + bl_getlang ("id") + ">"))
+				return 0
+
+			if id >= 0 and bl_myli and len (bl_myli) - 1 >= id:
+				item = bl_myli [id]
+				loaddr, hiaddr = bl_inttoaddr (item [0]), bl_inttoaddr (item [1])
+
+				if not item [3]:
+					bl_myli [id][3] = 1
+					vh.SQL ("update `py_bl_myli` set `off` = 1 where `loaddr` = %s and `hiaddr` = %s" % (str (item [0]), str (item [1])))
+
+					out = bl_getlang ("Item now disabled") + ":\r\n"
+					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
+					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
+					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (hiaddr, vh.GetIPCC (hiaddr) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % bl_getlang ("Yes")
+					out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_mylist"][0] else bl_getlang ("Notify"))
+
+					bl_reply (user, out)
+				else:
+					bl_myli [id][3] = 0
+					vh.SQL ("update `py_bl_myli` set `off` = 0 where `loaddr` = %s and `hiaddr` = %s" % (str (item [0]), str (item [1])))
+
+					out = bl_getlang ("Item now enabled") + ":\r\n"
+					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
+					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
+					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (hiaddr, vh.GetIPCC (hiaddr) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % bl_getlang ("No")
+					out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_mylist"][0] else bl_getlang ("Notify"))
+
+					bl_reply (user, out)
+			else:
+				bl_reply (user, bl_getlang ("List out of item with ID: %s") % str (id))
+
 			return 0
 
 		if data [4:9] == "mydel":
@@ -1861,7 +1942,7 @@ def OnOperatorCommand (user, data):
 				return 0
 
 			if id >= 0 and bl_myli and len (bl_myli) - 1 >= id:
-				item, stop = bl_myli.pop (id), False
+				item = bl_myli.pop (id)
 				vh.SQL ("delete from `py_bl_myli` where `loaddr` = %s and `hiaddr` = %s" % (str (item [0]), str (item [1])))
 				loaddr = bl_inttoaddr (item [0])
 				hiaddr = bl_inttoaddr (item [1])
@@ -1871,6 +1952,7 @@ def OnOperatorCommand (user, data):
 				out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
 				out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr) or "??")
 				out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (hiaddr, vh.GetIPCC (hiaddr) or "??")
+				out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % (bl_getlang ("No") if not item [3] else bl_getlang ("Yes"))
 				out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_mylist"][0] else bl_getlang ("Notify"))
 
 				bl_reply (user, out)
@@ -1892,7 +1974,8 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
 					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr) or "??")
-					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s") + "\r\n") % (hiaddr, vh.GetIPCC (hiaddr) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (hiaddr, vh.GetIPCC (hiaddr) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Disabled: %s") + "\r\n") % (bl_getlang ("No") if not item [3] else bl_getlang ("Yes"))
 
 			bl_reply (user, out)
 			return 0
@@ -1918,23 +2001,65 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
 					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]) or "??")
-					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s") + "\r\n") % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Disabled: %s") + "\r\n") % (bl_getlang ("No") if not item [3] else bl_getlang ("Yes"))
 
 					bl_reply (user, out)
 					return 0
 
 			loaddr = bl_addrtoint (pars [0][0])
 			hiaddr = bl_addrtoint (pars [0][1] or pars [0][0])
-			bl_exli.append ([loaddr, hiaddr, pars [0][2] or bl_getlang ("Exception")])
+			bl_exli.append ([loaddr, hiaddr, pars [0][2] or bl_getlang ("Exception"), 0])
 			vh.SQL ("insert ignore into `py_bl_exli` (`loaddr`, `hiaddr`, `title`) values (%s, %s, %s)" % (str (loaddr), str (hiaddr), ("'" + bl_repsql (pars [0][2]) + "'" if pars [0][2] else "null")))
 
 			out = bl_getlang ("Item added to list") + ":\r\n"
 			out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (len (bl_exli) - 1)
 			out += ("\r\n [*] " + bl_getlang ("Title: %s")) % (pars [0][2] or bl_getlang ("Exception"))
 			out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (pars [0][0], vh.GetIPCC (pars [0][0]) or "??")
-			out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s") + "\r\n") % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]) or "??")
+			out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (pars [0][1] or pars [0][0], vh.GetIPCC (pars [0][1] or pars [0][0]) or "??")
+			out += ("\r\n [*] " + bl_getlang ("Disabled: %s") + "\r\n") % bl_getlang ("No")
 
 			bl_reply (user, out)
+			return 0
+
+		if data [4:9] == "exoff":
+			if data [10:].isdigit ():
+				id = int (data [10:])
+			else:
+				bl_reply (user, bl_getlang ("Missing command parameters: %s") % ("exoff <" + bl_getlang ("id") + ">"))
+				return 0
+
+			if id >= 0 and bl_exli and len (bl_exli) - 1 >= id:
+				item = bl_exli [id]
+				loaddr, hiaddr = bl_inttoaddr (item [0]), bl_inttoaddr (item [1])
+
+				if not item [3]:
+					bl_exli [id][3] = 1
+					vh.SQL ("update `py_bl_exli` set `off` = 1 where `loaddr` = %s and `hiaddr` = %s" % (str (item [0]), str (item [1])))
+
+					out = bl_getlang ("Item now disabled") + ":\r\n"
+					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
+					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
+					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (hiaddr, vh.GetIPCC (hiaddr) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Disabled: %s") + "\r\n") % bl_getlang ("Yes")
+
+					bl_reply (user, out)
+				else:
+					bl_exli [id][3] = 0
+					vh.SQL ("update `py_bl_exli` set `off` = 0 where `loaddr` = %s and `hiaddr` = %s" % (str (item [0]), str (item [1])))
+
+					out = bl_getlang ("Item now enabled") + ":\r\n"
+					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
+					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
+					out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (hiaddr, vh.GetIPCC (hiaddr) or "??")
+					out += ("\r\n [*] " + bl_getlang ("Disabled: %s") + "\r\n") % bl_getlang ("No")
+
+					bl_reply (user, out)
+			else:
+				bl_reply (user, bl_getlang ("List out of item with ID: %s") % str (id))
+
 			return 0
 
 		if data [4:9] == "exdel":
@@ -1968,7 +2093,8 @@ def OnOperatorCommand (user, data):
 				out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
 				out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
 				out += ("\r\n [*] " + bl_getlang ("Lower IP: %s.%s")) % (loaddr, vh.GetIPCC (loaddr) or "??")
-				out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s") + "\r\n") % (hiaddr, vh.GetIPCC (hiaddr) or "??")
+				out += ("\r\n [*] " + bl_getlang ("Higher IP: %s.%s")) % (hiaddr, vh.GetIPCC (hiaddr) or "??")
+				out += ("\r\n [*] " + bl_getlang ("Disabled: %s") + "\r\n") % (bl_getlang ("No") if not item [3] else bl_getlang ("Yes"))
 
 				bl_reply (user, out)
 			else:
@@ -1986,7 +2112,7 @@ def OnOperatorCommand (user, data):
 
 			for item in bl_exli:
 				if intaddr >= item [0] and intaddr <= item [1]:
-					out += " %s - %s : %s\r\n" % (bl_inttoaddr (item [0]), bl_inttoaddr (item [1]), item [2])
+					out += " %s - %s : %s [%s]\r\n" % (bl_inttoaddr (item [0]), bl_inttoaddr (item [1]), item [2], bl_getlang ("Enabled") if not item [3] else bl_getlang ("Disabled"))
 					size += 1
 
 					if size >= bl_conf ["find_maxres"][0]:
@@ -2095,10 +2221,12 @@ def OnOperatorCommand (user, data):
 
 		out += " myall\t\t\t\t\t- " + bl_getlang ("Show my list") + "\r\n"
 		out += " myadd <" + bl_getlang ("addr") + ">-[" + bl_getlang ("range") + "] [" + bl_getlang ("title") + "]\t\t- " + bl_getlang ("New my item") + "\r\n"
+		out += " myoff <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Disable or enable item") + "\r\n"
 		out += " mydel <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Delete my item") + "\r\n\r\n"
 
 		out += " exall\t\t\t\t\t- " + bl_getlang ("Show exception list") + "\r\n"
 		out += " exadd <" + bl_getlang ("addr") + ">-[" + bl_getlang ("range") + "] [" + bl_getlang ("title") + "]\t\t\t- " + bl_getlang ("New exception item") + "\r\n"
+		out += " exoff <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Disable or enable item") + "\r\n"
 		out += " exdel <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Delete an exception") + "\r\n"
 		out += " extry <" + bl_getlang ("addr") + ">\t\t\t\t- " + bl_getlang ("Search in exceptions") + "\r\n\r\n"
 
