@@ -1110,6 +1110,18 @@ def OnNewConn (addr):
 
 			# dont break or return
 
+	for item in bl_item [addrpos]:
+		if intaddr >= item [0] and intaddr <= item [1]:
+			if not item [3]: # notification only
+				if bl_waitfeed (addr):
+					bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, item [2]))
+
+				bl_stat ["notify"] += 1
+			elif not bl_excheck (addr, intaddr, code, item [2], item [4]):
+				return 0
+
+			# dont break or return
+
 	if bl_asn: # asn check
 		try:
 			asn = vh.GetIPASN (addr)
@@ -1133,18 +1145,6 @@ def OnNewConn (addr):
 						# dont break or return
 		except: # not supported
 			pass
-
-	for item in bl_item [addrpos]:
-		if intaddr >= item [0] and intaddr <= item [1]:
-			if not item [3]: # notification only
-				if bl_waitfeed (addr):
-					bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, item [2]))
-
-				bl_stat ["notify"] += 1
-			elif not bl_excheck (addr, intaddr, code, item [2], item [4]):
-				return 0
-
-			# dont break or return
 
 	return 1
 
