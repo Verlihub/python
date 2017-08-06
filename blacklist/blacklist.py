@@ -78,6 +78,7 @@
 # -------
 # 1.2.3.0 - Added "myoff" and "exoff" commands to disable or enable items in my and exception lists
 # 1.2.3.0 - Added results from my list to find action
+# 1.2.3.0 - Added ASN check on connection
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
@@ -312,7 +313,16 @@ bl_lang = {
 	211: "ASN: %s",
 	212: "Disable or enable item",
 	213: "Enabled",
-	214: "Disabled"
+	214: "Disabled",
+	215: "Block action on ASN list item detections",
+	216: "Exception usage on ASN list item detections",
+	217: "ASN list",
+	218: "ASN items: %s",
+	219: "Show ASN list",
+	220: "asn",
+	221: "New ASN item",
+	222: "Delete ASN item",
+	223: "ASN list is empty."
 }
 
 bl_conf = {
@@ -340,8 +350,10 @@ bl_conf = {
 	"prox_debug": [0, "int", 0, 3, "Level of proxy lookup debug information"],
 	"action_proxy": [1, "int", 0, 1, "Block action on public proxy detections"],
 	"action_mylist": [1, "int", 0, 1, "Block action on my list item detections"],
+	"action_asnlist": [1, "int", 0, 1, "Block action on ASN list item detections"],
 	"except_proxy": [1, "int", 0, 1, "Exception usage on public proxy detections"],
 	"except_mylist": [1, "int", 0, 1, "Exception usage on my list item detections"],
+	"except_asnlist": [1, "int", 0, 1, "Exception usage on ASN list item detections"],
 	"action_extry": [0, "int", 0, 1, "Run exception lookup on notification actions"],
 	"extry_getasn": [0, "int", 0, 1, "Enable GeoIP ASN information on exception lookup"]
 }
@@ -370,6 +382,7 @@ bl_list = [
 bl_item = [[] for pos in xrange (256)]
 bl_prox = [[] for pos in xrange (256)]
 bl_myli = []
+bl_asn = []
 bl_exli = []
 bl_feed = []
 
@@ -409,6 +422,13 @@ def bl_main ():
 			"`title` varchar(255) collate utf8_unicode_ci null default null,"\
 			"`off` tinyint(1) unsigned not null default 0,"\
 			"unique `addr_index` (`loaddr`, `hiaddr`)"\
+		") engine = myisam default character set utf8 collate utf8_unicode_ci"
+	)
+
+	vh.SQL (
+		"create table if not exists `py_bl_asn` ("\
+			"`asn` varchar(255) collate utf8_unicode_ci not null primary key,"\
+			"`off` tinyint(1) unsigned not null default 0"\
 		") engine = myisam default character set utf8 collate utf8_unicode_ci"
 	)
 
@@ -468,6 +488,13 @@ def bl_main ():
 			bl_myli.append ([int (item [0]), int (item [1]), bl_getlang ("My item") if item [2] == "NULL" else item [2], int (item [3])])
 
 	out += " [*] %s: %s\r\n" % (bl_getlang ("My list"), str (len (rows)))
+	sql, rows = vh.SQL ("select * from `py_bl_asn`", 1000) # todo: dont forget about limit
+
+	if sql and rows:
+		for item in rows:
+			bl_asn.append ([item [0], int (item [1])])
+
+	out += " [*] %s: %s\r\n" % (bl_getlang ("ASN list"), str (len (rows)))
 	sql, rows = vh.SQL ("select * from `py_bl_exli`", 1000) # todo: dont forget about limit
 
 	if sql and rows:
@@ -1046,7 +1073,7 @@ def UnLoad ():
 	return 1
 
 def OnNewConn (addr):
-	global bl_conf, bl_stat, bl_item, bl_myli, bl_prox
+	global bl_conf, bl_stat, bl_item, bl_myli, bl_asn, bl_prox
 	bl_stat ["connect"] += 1
 	code = vh.GetIPCC (addr)
 
@@ -1082,6 +1109,30 @@ def OnNewConn (addr):
 				return 0
 
 			# dont break or return
+
+	if bl_asn: # asn check
+		try:
+			asn = vh.GetIPASN (addr)
+
+			if asn:
+				lowasn = asn.lower ()
+
+				if re.match ("^AS\d+", asn):
+					asn = "https://ipinfo.io/" + asn
+
+				for item in bl_asn:
+					if not item [1] and item [0].lower () in lowasn:
+						if not bl_conf ["action_asnlist"][0]: # notification only
+							if bl_waitfeed (addr):
+								bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, asn))
+
+							bl_stat ["notify"] += 1
+						elif not bl_excheck (addr, intaddr, code, asn, bl_conf ["except_asnlist"][0]):
+							return 0
+
+						# dont break or return
+		except: # not supported
+			pass
 
 	for item in bl_item [addrpos]:
 		if intaddr >= item [0] and intaddr <= item [1]:
@@ -1261,7 +1312,7 @@ def OnUserCommand (nick, data):
 	return 1
 
 def OnOperatorCommand (user, data):
-	global bl_defs, bl_lang, bl_conf, bl_stat, bl_list, bl_item, bl_prox, bl_myli, bl_exli, bl_feed
+	global bl_defs, bl_lang, bl_conf, bl_stat, bl_list, bl_item, bl_prox, bl_myli, bl_asn, bl_exli, bl_feed
 
 	if data [1:3] == "bl":
 		if vh.GetUserClass (user) < bl_conf ["class_conf"][0]:
@@ -1269,7 +1320,7 @@ def OnOperatorCommand (user, data):
 			return 0
 
 		if data [4:8] == "stat":
-			size, lists, wcurl, acurl, myoff, exoff = 0, 0, 0, 0, 0, 0
+			size, lists, wcurl, acurl, myoff, asnoff, exoff = 0, 0, 0, 0, 0, 0, 0
 
 			for pos in range (len (bl_item)):
 				size += len (bl_item [pos])
@@ -1281,6 +1332,10 @@ def OnOperatorCommand (user, data):
 			for item in bl_myli:
 				if not item [3]:
 					myoff += 1
+
+			for item in bl_asn:
+				if not item [1]:
+					asnoff += 1
 
 			for item in bl_exli:
 				if not item [3]:
@@ -1298,6 +1353,7 @@ def OnOperatorCommand (user, data):
 			out += ("\r\n [*] " + bl_getlang ("Loaded lists: %s")) % (bl_getlang ("%s of %s") % (str (lists), str (len (bl_list))))
 			out += ("\r\n [*] " + bl_getlang ("Blacklisted items: %s")) % str (size)
 			out += ("\r\n [*] " + bl_getlang ("My items: %s")) % (bl_getlang ("%s of %s") % (str (myoff), str (len (bl_myli))))
+			out += ("\r\n [*] " + bl_getlang ("ASN items: %s")) % (bl_getlang ("%s of %s") % (str (asnoff), str (len (bl_asn))))
 			out += ("\r\n [*] " + bl_getlang ("Excepted items: %s")) % (bl_getlang ("%s of %s") % (str (exoff), str (len (bl_exli))))
 			out += ("\r\n [*] " + bl_getlang ("Blocked connections: %s")) % str (bl_stat ["block"])
 			out += ("\r\n [*] " + bl_getlang ("Notified connections: %s")) % str (bl_stat ["notify"])
@@ -1961,6 +2017,111 @@ def OnOperatorCommand (user, data):
 
 			return 0
 
+		if data [4:10] == "asnall":
+			if not bl_asn:
+				out = bl_getlang ("ASN list is empty.")
+			else:
+				out = bl_getlang ("ASN list") + ":\r\n"
+
+				for id, item in enumerate (bl_asn):
+					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
+					out += ("\r\n [*] " + bl_getlang ("ASN: %s")) % item [0]
+					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % (bl_getlang ("No") if not item [1] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_asnlist"][0] else bl_getlang ("Notify"))
+
+			bl_reply (user, out)
+			return 0
+
+		if data [4:10] == "asnadd":
+			asn = data [11:]
+
+			if not asn:
+				bl_reply (user, bl_getlang ("Missing command parameters: %s") % ("asnadd <" + bl_getlang ("asn") + ">"))
+				return 0
+
+			for id, item in enumerate (bl_asn):
+				if item [0] == asn:
+					out = bl_getlang ("Item already in list") + ":\r\n"
+					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
+					out += ("\r\n [*] " + bl_getlang ("ASN: %s")) % item [0]
+					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % (bl_getlang ("No") if not item [1] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_asnlist"][0] else bl_getlang ("Notify"))
+
+					bl_reply (user, out)
+					return 0
+
+			bl_asn.append ([asn, 0])
+			vh.SQL ("insert ignore into `py_bl_asn` (`asn`) values ('%s')" % bl_repsql (asn))
+
+			out = bl_getlang ("Item added to list") + ":\r\n"
+			out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (len (bl_asn) - 1)
+			out += ("\r\n [*] " + bl_getlang ("ASN: %s")) % asn
+			out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % bl_getlang ("No")
+			out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_asnlist"][0] else bl_getlang ("Notify"))
+
+			bl_reply (user, out)
+			return 0
+
+		if data [4:10] == "asnoff":
+			if data [11:].isdigit ():
+				id = int (data [11:])
+			else:
+				bl_reply (user, bl_getlang ("Missing command parameters: %s") % ("asnoff <" + bl_getlang ("id") + ">"))
+				return 0
+
+			if id >= 0 and bl_asn and len (bl_asn) - 1 >= id:
+				item = bl_asn [id]
+
+				if not item [1]:
+					bl_asn [id][1] = 1
+					vh.SQL ("update `py_bl_asn` set `off` = 1 where `asn` = '%s'" % bl_repsql (item [0]))
+
+					out = bl_getlang ("Item now disabled") + ":\r\n"
+					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
+					out += ("\r\n [*] " + bl_getlang ("ASN: %s")) % item [0]
+					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % bl_getlang ("Yes")
+					out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_asnlist"][0] else bl_getlang ("Notify"))
+
+					bl_reply (user, out)
+				else:
+					bl_asn [id][1] = 0
+					vh.SQL ("update `py_bl_asn` set `off` = 0 where `asn` = '%s'" % bl_repsql (item [0]))
+
+					out = bl_getlang ("Item now enabled") + ":\r\n"
+					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
+					out += ("\r\n [*] " + bl_getlang ("ASN: %s")) % item [0]
+					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % bl_getlang ("No")
+					out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_asnlist"][0] else bl_getlang ("Notify"))
+
+					bl_reply (user, out)
+			else:
+				bl_reply (user, bl_getlang ("List out of item with ID: %s") % str (id))
+
+			return 0
+
+		if data [4:10] == "asndel":
+			if data [11:].isdigit ():
+				id = int (data [11:])
+			else:
+				bl_reply (user, bl_getlang ("Missing command parameters: %s") % ("asndel <" + bl_getlang ("id") + ">"))
+				return 0
+
+			if id >= 0 and bl_asn and len (bl_asn) - 1 >= id:
+				item = bl_asn.pop (id)
+				vh.SQL ("delete from `py_bl_asn` where `asn` = '%s'" % bl_repsql (item [0]))
+
+				out = bl_getlang ("Item deleted from list") + ":\r\n"
+				out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
+				out += ("\r\n [*] " + bl_getlang ("ASN: %s")) % item [0]
+				out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % (bl_getlang ("No") if not item [1] else bl_getlang ("Yes"))
+				out += ("\r\n [*] " + bl_getlang ("Action: %s") + "\r\n") % (bl_getlang ("Block") if bl_conf ["action_asnlist"][0] else bl_getlang ("Notify"))
+
+				bl_reply (user, out)
+			else:
+				bl_reply (user, bl_getlang ("List out of item with ID: %s") % str (id))
+
+			return 0
+
 		if data [4:9] == "exall":
 			if not bl_exli:
 				out = bl_getlang ("Exception list is empty.")
@@ -2223,6 +2384,11 @@ def OnOperatorCommand (user, data):
 		out += " myadd <" + bl_getlang ("addr") + ">-[" + bl_getlang ("range") + "] [" + bl_getlang ("title") + "]\t\t- " + bl_getlang ("New my item") + "\r\n"
 		out += " myoff <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Disable or enable item") + "\r\n"
 		out += " mydel <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Delete my item") + "\r\n\r\n"
+
+		out += " asnall\t\t\t\t\t- " + bl_getlang ("Show ASN list") + "\r\n"
+		out += " asnadd <" + bl_getlang ("asn") + ">\t\t\t\t- " + bl_getlang ("New ASN item") + "\r\n"
+		out += " asnoff <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Disable or enable item") + "\r\n"
+		out += " asndel <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Delete ASN item") + "\r\n\r\n"
 
 		out += " exall\t\t\t\t\t- " + bl_getlang ("Show exception list") + "\r\n"
 		out += " exadd <" + bl_getlang ("addr") + ">-[" + bl_getlang ("range") + "] [" + bl_getlang ("title") + "]\t\t\t- " + bl_getlang ("New exception item") + "\r\n"

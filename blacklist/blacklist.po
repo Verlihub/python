@@ -657,3 +657,30 @@ msgstr ""
 
 msgid "Disabled"
 msgstr ""
+
+msgid "Block action on ASN list item detections"
+msgstr ""
+
+msgid "Exception usage on ASN list item detections"
+msgstr ""
+
+msgid "ASN list"
+msgstr ""
+
+msgid "ASN items: %s"
+msgstr ""
+
+msgid "Show ASN list"
+msgstr ""
+
+msgid "asn"
+msgstr ""
+
+msgid "New ASN item"
+msgstr ""
+
+msgid "Delete ASN item"
+msgstr ""
+
+msgid "ASN list is empty."
+msgstr ""

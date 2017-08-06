@@ -219,3 +219,12 @@ ASN: %s|
 Disable or enable item|
 Enabled|
 Disabled|
+Block action on ASN list item detections|
+Exception usage on ASN list item detections|
+ASN list|
+ASN items: %s|
+Show ASN list|
+asn|
+New ASN item|
+Delete ASN item|
+ASN list is empty.|
