@@ -95,7 +95,7 @@ bl_defs = {
 	"timersec": 60,
 	"quotesec": 60 * 60 * 24,
 	"delwait": 60,
-	"prevfeed": 60
+	"prevfeed": 30
 }
 
 bl_lang = {
@@ -823,7 +823,7 @@ def bl_excheck (addr, intaddr, code, name, exuse, nick = None, chat = False):
 
 	return 0
 
-def bl_waitfeed (addr, prev = True): # note previous state
+def bl_waitfeed (addr, prev = False):
 	global bl_defs, bl_conf, bl_feed
 	mins, now = (bl_conf ["time_feed"][0] * 60), time.time ()
 
@@ -831,7 +831,7 @@ def bl_waitfeed (addr, prev = True): # note previous state
 		if addr == item [0]:
 			dif = now - item [1]
 
-			if dif >= mins or (prev and dif <= bl_defs ["prevfeed"]):
+			if dif == 0 or dif >= mins or (prev and dif <= bl_defs ["prevfeed"]):
 				bl_feed [id][1] = now
 				return 1
 
@@ -1165,7 +1165,7 @@ def OnUserLogin (nick):
 	for item in bl_myli: # my list first
 		if not item [3] and intaddr >= item [0] and intaddr <= item [1]:
 			if not bl_conf ["action_mylist"][0]: # notification only
-				if bl_waitfeed (addr): # True
+				if bl_waitfeed (addr, True):
 					bl_notify (bl_getlang ("Notifying blacklisted login from %s with IP %s.%s: %s") % (nick, addr, code, item [2]))
 
 					if bl_conf ["action_extry"][0]:
@@ -1178,7 +1178,7 @@ def OnUserLogin (nick):
 	for item in bl_item [addrpos]:
 		if intaddr >= item [0] and intaddr <= item [1]:
 			if not item [3]: # notification only
-				if bl_waitfeed (addr): # True
+				if bl_waitfeed (addr, True):
 					bl_notify (bl_getlang ("Notifying blacklisted login from %s with IP %s.%s: %s") % (nick, addr, code, item [2]))
 
 					if bl_conf ["action_extry"][0]:
