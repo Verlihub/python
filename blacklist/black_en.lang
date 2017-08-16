@@ -228,3 +228,6 @@ asn|
 New ASN item|
 Delete ASN item|
 ASN list is empty.|
+Search in ASN list|
+Results for ASN: %s|
+No results for ASN: %s|

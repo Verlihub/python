@@ -322,7 +322,10 @@ bl_lang = {
 	220: "asn",
 	221: "New ASN item",
 	222: "Delete ASN item",
-	223: "ASN list is empty."
+	223: "ASN list is empty.",
+	224: "Search in ASN list",
+	225: "Results for ASN: %s",
+	226: "No results for ASN: %s"
 }
 
 bl_conf = {
@@ -2122,6 +2125,34 @@ def OnOperatorCommand (user, data):
 
 			return 0
 
+		if data [4:10] == "asntry":
+			asn = data [11:]
+
+			if not asn:
+				bl_reply (user, bl_getlang ("Missing command parameters: %s") % ("asntry <" + bl_getlang ("asn") + ">"))
+				return 0
+
+			if not bl_asn:
+				bl_reply (user, bl_getlang ("ASN list is empty."))
+				return 0
+
+			lowasn, out, size = asn.lower (), "", 0
+
+			for id, item in enumerate (bl_asn):
+				if item [0].lower () in lowasn:
+					out += " %s. %s [%s]\r\n" % (str (id), item [0], bl_getlang ("Enabled") if not item [1] else bl_getlang ("Disabled"))
+					size += 1
+
+					if size >= bl_conf ["find_maxres"][0]:
+						break
+
+			if size:
+				bl_reply (user, (bl_getlang ("Results for ASN: %s") + "\r\n\r\n%s") % (asn, out))
+			else:
+				bl_reply (user, bl_getlang ("No results for ASN: %s") % asn)
+
+			return 0
+
 		if data [4:9] == "exall":
 			if not bl_exli:
 				out = bl_getlang ("Exception list is empty.")
@@ -2388,7 +2419,8 @@ def OnOperatorCommand (user, data):
 		out += " asnall\t\t\t\t\t- " + bl_getlang ("Show ASN list") + "\r\n"
 		out += " asnadd <" + bl_getlang ("asn") + ">\t\t\t\t- " + bl_getlang ("New ASN item") + "\r\n"
 		out += " asnoff <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Disable or enable item") + "\r\n"
-		out += " asndel <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Delete ASN item") + "\r\n\r\n"
+		out += " asndel <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Delete ASN item") + "\r\n"
+		out += " asntry <" + bl_getlang ("asn") + ">\t\t\t\t- " + bl_getlang ("Search in ASN list") + "\r\n\r\n"
 
 		out += " exall\t\t\t\t\t- " + bl_getlang ("Show exception list") + "\r\n"
 		out += " exadd <" + bl_getlang ("addr") + ">-[" + bl_getlang ("range") + "] [" + bl_getlang ("title") + "]\t\t\t- " + bl_getlang ("New exception item") + "\r\n"
