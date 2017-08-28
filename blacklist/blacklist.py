@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.3.0
+# Blacklist 1.2.3.1
 # © 2010-2017 RoLex
 # Thanks to Frog
 
@@ -79,12 +79,14 @@
 # 1.2.3.0 - Added "myoff" and "exoff" commands to disable or enable items in my and exception lists
 # 1.2.3.0 - Added results from my list to find action
 # 1.2.3.0 - Added ASN check on connection
+# 1.2.3.1 - Added "asn_block" configuration for space separated list of blocked AS numbers
+# 1.2.3.1 - Added "asn_except" configuration for space separated list of excepted AS numbers
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.3.0", # todo: dont forget to update
+	"version": "1.2.3.1", # todo: dont forget to update
 	"curlver": ["curl", "-V"],
 	"curlreq": "6375726c202d47202d4c202d2d6d61782d726564697273202573202d2d7265747279202573202d2d636f6e6e6563742d74696d656f7574202573202d6d202573202d412022257322202d652022257322202d73202d6f202225732220222573222026",
 	"ipintel": "687474703a2f2f636865636b2e6765746970696e74656c2e6e65742f636865636b2e7068703f666f726d61743d6a736f6e26636f6e746163743d25732669703d2573",
@@ -325,14 +327,20 @@ bl_lang = {
 	223: "ASN list is empty.",
 	224: "Search in ASN list",
 	225: "Results for ASN: %s",
-	226: "No results for ASN: %s"
+	226: "No results for ASN: %s",
+	227: "Space separated AS numbers to block",
+	228: "Space separated AS numbers to except",
+	229: "Blocked ASN: %s",
+	230: "Excepted ASN: %s"
 }
 
 bl_conf = {
-	"nick_bot": ["", "str", 0, 255, "Bot nick to register and send notifications"],
-	"nick_feed": ["", "str", 0, 255, "User nick to receive all feed messages"],
-	"code_block": ["", "str", 0, 255, "Space separated country codes to block"],
-	"code_except": ["", "str", 0, 255, "Space separated country codes to except"],
+	"nick_bot": ["", "str", 0, 250, "Bot nick to register and send notifications"],
+	"nick_feed": ["", "str", 0, 250, "User nick to receive all feed messages"],
+	"code_block": ["", "str", 0, 500, "Space separated country codes to block"],
+	"code_except": ["", "str", 0, 500, "Space separated country codes to except"],
+	"asn_block": ["", "str", 0, 1000, "Space separated AS numbers to block"],
+	"asn_except": ["", "str", 0, 1000, "Space separated AS numbers to except"],
 	"class_feed": [5, "int", 0, 11, "Minimal class to receive feed messages"],
 	"class_conf": [10, "int", 3, 11, "Minimal class to access script commands"],
 	"class_skip": [3, "int", 0, 11, "Minimal class to skip public proxy lookup"],
@@ -341,7 +349,7 @@ bl_conf = {
 	"notify_update": [1, "int", 0, 1, "Enable blacklist list update notification"],
 	"find_maxres": [1000, "int", 1, 10000, "Maximum number of blacklist search results"],
 	"prox_lookup": [0, "int", 0, 2, "Enable proxy lookup on user login or chat"],
-	"prox_email": ["", "str", 0, 255, "Email address required for proxy lookup"],
+	"prox_email": ["", "str", 0, 250, "Email address required for proxy lookup"],
 	"prox_match": [99, "int", 1, 100, "Minimal number of public proxy matches"],
 	"prox_start": [5, "int", 0, 30, "Minutes to wait after hub is started"],
 	"prox_timer": [3, "int", 1, 300, "Seconds to process proxy lookup queue"],
@@ -402,7 +410,7 @@ def bl_main ():
 	vh.SQL (
 		"create table if not exists `py_bl_conf` ("\
 			"`name` varchar(255) collate utf8_unicode_ci not null primary key,"\
-			"`value` varchar(255) collate utf8_unicode_ci not null"\
+			"`value` text collate utf8_unicode_ci not null"\
 		") engine = myisam default character set utf8 collate utf8_unicode_ci"
 	)
 
@@ -445,6 +453,7 @@ def bl_main ():
 		") engine = myisam default character set utf8 collate utf8_unicode_ci"
 	)
 
+	vh.SQL ("alter table `py_bl_conf` change column `value` `value` text collate utf8_unicode_ci not null")
 	vh.SQL ("alter table `py_bl_list` add column `off` tinyint(1) unsigned not null default 0 after `update`")
 	vh.SQL ("alter table `py_bl_list` add column `action` tinyint(1) unsigned not null default 1 after `off`")
 	vh.SQL ("alter table `py_bl_list` add column `except` tinyint(1) unsigned not null default 1 after `action`")
@@ -777,11 +786,11 @@ def bl_extry (addr, code, intaddr, loaddr, hiaddr):
 	if bl_conf ["extry_getasn"][0]:
 		bl_notify (bl_getlang ("ASN: %s") % bl_getasn (addr))
 
-def bl_excheck (addr, intaddr, code, name, exuse, nick = None, chat = False):
+def bl_excheck (addr, intaddr, code, asn, urlasn, name, exuse, nick = None, chat = False):
 	global bl_conf, bl_stat, bl_exli
 
 	if exuse:
-		if bl_conf ["code_except"][0] and code and str ().join ([" ", code, " "]) in str ().join ([" ", bl_conf ["code_except"][0], " "]):
+		if bl_conf ["code_except"][0] and code and str ().join ([" ", code, " "]) in str ().join ([" ", bl_conf ["code_except"][0], " "]): # country code exception
 			if bl_waitfeed (addr):
 				if nick:
 					if chat:
@@ -796,7 +805,22 @@ def bl_excheck (addr, intaddr, code, name, exuse, nick = None, chat = False):
 
 			return 1
 
-		for item in bl_exli:
+		if bl_conf ["asn_except"][0] and asn and str ().join ([" ", asn, " "]) in str ().join ([" ", bl_conf ["asn_except"][0], " "]): # asn exception
+			if bl_waitfeed (addr):
+				if nick:
+					if chat:
+						bl_notify ((bl_getlang ("Blacklisted chat exception from %s with IP %s.%s: %s") + " | %s") % (nick, addr, code, name, bl_getlang ("Excepted ASN: %s") % urlasn))
+					else:
+						bl_notify ((bl_getlang ("Blacklisted login exception from %s with IP %s.%s: %s") + " | %s") % (nick, addr, code, name, bl_getlang ("Excepted ASN: %s") % urlasn))
+				else:
+					bl_notify ((bl_getlang ("Blacklisted connection exception from %s.%s: %s") + " | %s") % (addr, code, name, bl_getlang ("Excepted ASN: %s") % urlasn))
+
+			if not nick:
+				bl_stat ["except"] += 1
+
+			return 1
+
+		for item in bl_exli: # exception list
 			if not item [3] and intaddr >= item [0] and intaddr <= item [1]:
 				if bl_waitfeed (addr):
 					if nick:
@@ -1090,13 +1114,35 @@ def OnNewConn (addr):
 		bl_stat ["block"] += 1
 		return 0
 
+	asn, asnum, urlasn = None, None, None
+
+	try: # get asn
+		asn = vh.GetIPASN (addr)
+
+		if asn:
+			urlasn = asn
+			match = re.match ("^AS\d+", asn)
+
+			if match:
+				urlasn = "https://ipinfo.io/" + urlasn
+				asnum = match.group (0)
+
+				if bl_conf ["asn_block"][0] and str ().join ([" ", asnum, " "]) in str ().join ([" ", bl_conf ["asn_block"][0], " "]):
+					if bl_waitfeed (addr):
+						bl_notify (bl_getlang ("Blocking blacklisted connection from %s.%s: %s") % (addr, code, bl_getlang ("Blocked ASN: %s") % urlasn))
+
+					bl_stat ["block"] += 1
+					return 0
+	except: # not supported
+		pass
+
 	intaddr = bl_addrtoint (addr)
 	addrpos = intaddr >> 24
 
 	if code != "L1" and code != "P1" and bl_conf ["prox_lookup"][0] and time.time () - vh.starttime >= bl_conf ["prox_start"][0] * 60: # check proxy
 		for id, item in enumerate (bl_prox [addrpos]):
 			if addr == item [0]:
-				if item [2] == 2 and not bl_excheck (addr, intaddr, code, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0]):
+				if item [2] == 2 and not bl_excheck (addr, intaddr, code, asnum, urlasn, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0]):
 					return 0
 
 				break # dont return
@@ -1108,7 +1154,7 @@ def OnNewConn (addr):
 					bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, item [2]))
 
 				bl_stat ["notify"] += 1
-			elif not bl_excheck (addr, intaddr, code, item [2], bl_conf ["except_mylist"][0]):
+			elif not bl_excheck (addr, intaddr, code, asnum, urlasn, item [2], bl_conf ["except_mylist"][0]):
 				return 0
 
 			# dont break or return
@@ -1120,34 +1166,25 @@ def OnNewConn (addr):
 					bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, item [2]))
 
 				bl_stat ["notify"] += 1
-			elif not bl_excheck (addr, intaddr, code, item [2], item [4]):
+			elif not bl_excheck (addr, intaddr, code, asnum, urlasn, item [2], item [4]):
 				return 0
 
 			# dont break or return
 
-	if bl_asn: # asn check
-		try:
-			asn = vh.GetIPASN (addr)
+	if bl_asn and asn: # asn check
+		lowasn = asn.lower ()
 
-			if asn:
-				lowasn = asn.lower ()
+		for item in bl_asn:
+			if not item [1] and item [0].lower () in lowasn:
+				if not bl_conf ["action_asnlist"][0]: # notification only
+					if bl_waitfeed (addr):
+						bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, urlasn))
 
-				if re.match ("^AS\d+", asn):
-					asn = "https://ipinfo.io/" + asn
+					bl_stat ["notify"] += 1
+				elif not bl_excheck (addr, intaddr, code, asnum, urlasn, urlasn, bl_conf ["except_asnlist"][0]):
+					return 0
 
-				for item in bl_asn:
-					if not item [1] and item [0].lower () in lowasn:
-						if not bl_conf ["action_asnlist"][0]: # notification only
-							if bl_waitfeed (addr):
-								bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, asn))
-
-							bl_stat ["notify"] += 1
-						elif not bl_excheck (addr, intaddr, code, asn, bl_conf ["except_asnlist"][0]):
-							return 0
-
-						# dont break or return
-		except: # not supported
-			pass
+				# dont break or return
 
 	return 1
 
@@ -1205,7 +1242,7 @@ def OnUserLogin (nick):
 				if not nick in item [1]:
 					bl_prox [addrpos][id][1].append (nick)
 			#elif item [2] == 2: # checked on connect
-				#return bl_excheck (addr, intaddr, code, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick)
+				#return bl_excheck (addr, intaddr, code, None, None, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick)
 			#elif item [2] == 3: # exception
 				#pass
 
@@ -1267,7 +1304,7 @@ def OnParsedMsgChat (nick, data):
 				if not nick in item [1]:
 					bl_prox [addrpos][id][1].append (nick)
 			elif item [2] == 2:
-				return bl_excheck (addr, intaddr, code, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick, True)
+				return bl_excheck (addr, intaddr, code, None, None, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick, True)
 			#elif item [2] == 3: # exception
 				#pass
 
@@ -2527,7 +2564,7 @@ def OnTimer (msec):
 											# todo: bl_extry if ever required
 											bl_stat ["notify"] += 1
 											bl_prox [pos][id][2] = 3
-										elif bl_excheck (item [0], intaddr, code, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], item [1][0] if len (item [1]) == 1 else ", ".join (item [1]), item [4]):
+										elif bl_excheck (item [0], intaddr, code, None, None, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], item [1][0] if len (item [1]) == 1 else ", ".join (item [1]), item [4]):
 											bl_stat ["except"] += len (item [1])
 											bl_prox [pos][id][2] = 3
 										else:

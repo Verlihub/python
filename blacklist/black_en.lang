@@ -231,3 +231,7 @@ ASN list is empty.|
 Search in ASN list|
 Results for ASN: %s|
 No results for ASN: %s|
+Space separated AS numbers to block|
+Space separated AS numbers to except|
+Blocked ASN: %s|
+Excepted ASN: %s|
