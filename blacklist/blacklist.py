@@ -1,7 +1,7 @@
 # coding: latin-1
 
-# Blacklist 1.2.3.1
-# © 2010-2017 RoLex
+# Blacklist 1.2.3.2
+# © 2010-2018 RoLex
 # Thanks to Frog
 
 # Changelog:
@@ -81,6 +81,7 @@
 # 1.2.3.0 - Added ASN check on connection
 # 1.2.3.1 - Added "asn_block" configuration for space separated list of blocked AS numbers
 # 1.2.3.1 - Added "asn_except" configuration for space separated list of excepted AS numbers
+# 1.2.3.2 - Added "nick_skip" configuration for space separated list of users to skip proxy lookup
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
@@ -331,7 +332,8 @@ bl_lang = {
 	227: "Space separated AS numbers to block",
 	228: "Space separated AS numbers to except",
 	229: "Blocked ASN: %s",
-	230: "Excepted ASN: %s"
+	230: "Excepted ASN: %s",
+	231: "Space separated nicks to skip proxy lookup"
 }
 
 bl_conf = {
@@ -344,6 +346,7 @@ bl_conf = {
 	"class_feed": [5, "int", 0, 11, "Minimal class to receive feed messages"],
 	"class_conf": [10, "int", 3, 11, "Minimal class to access script commands"],
 	"class_skip": [3, "int", 0, 11, "Minimal class to skip public proxy lookup"],
+	"nick_skip": ["", "str", 0, 10000, "Space separated nicks to skip proxy lookup"],
 	"time_feed": [60, "int", 0, 1440, "Minutes to delay same IP notifications"],
 	"time_down": [5, "int", 1, 300, "Download operation timeout in seconds"],
 	"notify_update": [1, "int", 0, 1, "Enable blacklist list update notification"],
@@ -1226,7 +1229,7 @@ def OnUserLogin (nick):
 
 			# dont break or return
 
-	if code == "L1" or code == "P1" or vh.GetUserClass (nick) >= bl_conf ["class_skip"][0]:
+	if code == "L1" or code == "P1" or vh.GetUserClass (nick) >= bl_conf ["class_skip"][0] or (bl_conf ["nick_skip"][0] and str ().join ([" ", nick, " "]) in str ().join ([" ", bl_conf ["nick_skip"][0], " "])):
 		return 1
 
 	now = time.time ()
@@ -1278,7 +1281,7 @@ def OnUserLogin (nick):
 def OnParsedMsgChat (nick, data):
 	global bl_defs, bl_conf, bl_prox, bl_stat
 
-	if bl_conf ["prox_lookup"][0] < 2 or vh.GetUserClass (nick) >= bl_conf ["class_skip"][0]:
+	if bl_conf ["prox_lookup"][0] < 2 or vh.GetUserClass (nick) >= bl_conf ["class_skip"][0] or (bl_conf ["nick_skip"][0] and str ().join ([" ", nick, " "]) in str ().join ([" ", bl_conf ["nick_skip"][0], " "])):
 		return 1
 
 	addr = vh.GetUserIP (nick)

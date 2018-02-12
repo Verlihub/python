@@ -235,3 +235,4 @@ Space separated AS numbers to block|
 Space separated AS numbers to except|
 Blocked ASN: %s|
 Excepted ASN: %s|
+Space separated nicks to skip proxy lookup|
