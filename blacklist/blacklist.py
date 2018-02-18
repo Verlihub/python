@@ -2342,9 +2342,9 @@ def OnOperatorCommand (user, data):
 			out, size = "", 0
 			intaddr = bl_addrtoint (data [10:])
 
-			for item in bl_exli:
+			for id, item in enumerate (bl_exli):
 				if intaddr >= item [0] and intaddr <= item [1]:
-					out += " %s - %s : %s [%s]\r\n" % (bl_inttoaddr (item [0]), bl_inttoaddr (item [1]), item [2], bl_getlang ("Enabled") if not item [3] else bl_getlang ("Disabled"))
+					out += " %s. %s - %s : %s [%s]\r\n" % (str (id), bl_inttoaddr (item [0]), bl_inttoaddr (item [1]), item [2], bl_getlang ("Enabled") if not item [3] else bl_getlang ("Disabled"))
 					size += 1
 
 					if size >= bl_conf ["find_maxres"][0]:
