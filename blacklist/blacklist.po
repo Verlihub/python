@@ -3,8 +3,8 @@ msgstr ""
 "Project-Id-Version: Blacklist\n"
 "Project-Version: 1.2.3\n"
 "Report-Msgid-Bugs-To: RoLex <webmaster@feardc.net>\n"
-"POT-Creation-Date: 2018-02-19 00:00+0200\n"
-"PO-Revision-Date: 2018-02-19 00:00+0200\n"
+"POT-Creation-Date: 2018-03-04 00:00+0200\n"
+"PO-Revision-Date: 2018-03-04 00:00+0200\n"
 "Last-Translator: RoLex <webmaster@feardc.net>\n"
 "Language-Team: RoLex <webmaster@feardc.net>\n"
 "Language: en_GB\n"
@@ -299,21 +299,6 @@ msgid "update"
 msgstr ""
 
 msgid "None"
-msgstr ""
-
-msgid "Set translation string"
-msgstr ""
-
-msgid "Show current translation"
-msgstr ""
-
-msgid "Translation list"
-msgstr ""
-
-msgid "Updated translation with ID: %s"
-msgstr ""
-
-msgid "Parameter count mismatch in translation with ID: %s"
 msgstr ""
 
 msgid "File is not compressed with ZIP"
@@ -707,4 +692,7 @@ msgid "Excepted ASN: %s"
 msgstr ""
 
 msgid "Space separated nicks to skip proxy lookup"
+msgstr ""
+
+msgid "Translation: %s"
 msgstr ""

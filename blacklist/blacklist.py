@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.3.2
+# Blacklist 1.2.3.3
 # © 2010-2018 RoLex
 # Thanks to Frog
 
@@ -82,12 +82,14 @@
 # 1.2.3.1 - Added "asn_block" configuration for space separated list of blocked AS numbers
 # 1.2.3.1 - Added "asn_except" configuration for space separated list of excepted AS numbers
 # 1.2.3.2 - Added "nick_skip" configuration for space separated list of users to skip proxy lookup
+# 1.2.3.3 - Added translation file support instead of "lang" and "tran" commands
+# 1.2.3.3 - Added "lang_pref" configuration as translation file language prefix
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.3.2", # todo: dont forget to update
+	"version": "1.2.3.3", # todo: dont forget to update
 	"curlver": ["curl", "-V"],
 	"curlreq": "6375726c202d47202d4c202d2d6d61782d726564697273202573202d2d7265747279202573202d2d636f6e6e6563742d74696d656f7574202573202d6d202573202d412022257322202d652022257322202d73202d6f202225732220222573222026",
 	"ipintel": "687474703a2f2f636865636b2e6765746970696e74656c2e6e65742f636865636b2e7068703f666f726d61743d6a736f6e26636f6e746163743d25732669703d2573",
@@ -99,241 +101,6 @@ bl_defs = {
 	"quotesec": 60 * 60 * 24,
 	"delwait": 60,
 	"prevfeed": 30
-}
-
-bl_lang = {
-	0: "Blacklist %s startup",
-	1: "Exception",
-	2: "Failed with HTTP error",
-	3: "Failed with URL error",
-	4: "Failed with unknown error",
-	5: "Failed to compile pattern",
-	6: "File is not compressed with GZIP",
-	7: "Failed to read data",
-	8: "%s items loaded",
-	9: "Unknown list type",
-	10: "Failed to open file",
-	11: "My list",
-	12: "Value too low",
-	13: "Value too high",
-	14: "Value is not a number",
-	15: "Value too short",
-	16: "Value too long",
-	17: "Item not found",
-	18: "Blacklisted connection exception from %s.%s: %s",
-	19: "Blocking blacklisted connection from %s.%s: %s",
-	20: "You don't have access to this command.",
-	21: "Blacklist statistics",
-	22: "Version: %s",
-	23: "Loaded lists: %s",
-	24: "Blacklisted items: %s",
-	25: "Excepted items: %s",
-	26: "Blocked connections: %s",
-	27: "Excepted connections: %s",
-	28: "Total connections: %s",
-	29: "Missing command parameters: %s",
-	30: "Results for IP: %s",
-	31: "No results for IP: %s",
-	32: "Results for title: %s",
-	33: "No results for title: %s",
-	34: "Blacklist list is empty.",
-	35: "Blacklist list",
-	36: "ID: %s",
-	37: "List: %s",
-	38: "Type: %s",
-	39: "Title: %s",
-	40: "Update: %s",
-	41: "On load",
-	42: "%s minute",
-	43: "%s minutes",
-	44: "Disabled: %s",
-	45: "No",
-	46: "Yes",
-	47: "Type must be one of: %s",
-	48: "Update must be in range: %s - %s",
-	49: "Item already in list",
-	50: "Item added to list",
-	51: "Status: %s",
-	52: "Item deleted from list",
-	53: "List out of item with ID: %s",
-	54: "Item now disabled",
-	55: "Item now enabled",
-	56: "Exception list is empty.",
-	57: "Exception list",
-	58: "Lower IP: %s.%s",
-	59: "Higher IP: %s.%s",
-	60: "Lower IP not valid: %s",
-	61: "Higher IP not valid: %s",
-	62: "Configuration list",
-	63: "Name: %s",
-	64: "Range: %s - %s",
-	65: "Value: %s",
-	66: "Item configuration",
-	67: "Old value: %s",
-	68: "New value: %s",
-	69: "Waiting feed list is empty.",
-	70: "Waiting feed list",
-	71: "IP: %s.%s",
-	72: "Expires: %s",
-	73: "Blacklist usage",
-	74: "Script statistics",
-	75: "Search in loaded lists",
-	76: "Show all lists",
-	77: "Load new list",
-	78: "Disable or enable list",
-	79: "Delete existing list",
-	80: "Show exception list",
-	81: "New exception item",
-	82: "Delete an exception",
-	83: "Show current configuration",
-	84: "Set configuration item",
-	85: "Show waiting feed list",
-	86: "value",
-	87: "item",
-	88: "id",
-	89: "addr",
-	90: "range",
-	91: "title",
-	92: "list",
-	93: "type",
-	94: "update",
-	95: "None",
-	96: "Set translation string",
-	97: "Show current translation",
-	98: "Translation list",
-	99: "Updated translation with ID: %s",
-	100: "Parameter count mismatch in translation with ID: %s",
-	101: "File is not compressed with ZIP",
-	102: "Force load of existing list",
-	103: "Item is disabled: %s",
-	104: "Item load result",
-	105: "Failed to load JSON",
-	106: "Failed to parse JSON",
-	107: "Failed to get status",
-	108: "Unexpected status: %s",
-	109: "Failed to get result",
-	110: "Failed to open URL",
-	111: "Waiting feed list out of item: %s.%s",
-	112: "Error status: %s",
-	113: "Unknown",
-	114: "Waiting feed list item deleted: %s.%s",
-	115: "Bad command parameters: %s",
-	116: "Public proxy lookup",
-	117: "Waiting feed list has been cleared.",
-	118: "Not enough matches for %s.%s: %s of %s",
-	119: "Public proxy detected: %s.%s",
-	120: "Failed proxy detection for %s.%s: %s",
-	121: "Delete blacklisted item",
-	122: "List out of item with range: %s - %s",
-	123: "Data directory: %s",
-	124: "Failed to create directory",
-	125: "Failed to execute command",
-	126: "Public proxy",
-	127: "Show waiting proxy lookups",
-	128: "Waiting proxy lookup list is empty.",
-	129: "Waiting proxy lookups",
-	130: "Time: %s",
-	131: "Users: %s",
-	132: "Feature is disabled.",
-	133: "Total: %s",
-	134: "Queued",
-	135: "Waiting",
-	136: "Failed to get version",
-	137: "%s version: %s",
-	138: "%s of %s",
-	139: "Done",
-	140: "My list is empty.",
-	141: "Reload all lists",
-	142: "My item",
-	143: "Reload results",
-	144: "Show my list",
-	145: "New my item",
-	146: "Delete my item",
-	147: "My items: %s",
-	148: "Excepted country: %s=%s",
-	149: "Blocked country: %s=%s",
-	150: "User nick to receive all feed messages",
-	151: "Space separated country codes to block",
-	152: "Space separated country codes to except",
-	153: "Minimal class to receive feed messages",
-	154: "Minimal class to access script commands",
-	155: "Minimal class to skip public proxy lookup",
-	156: "Minutes to delay same IP notifications",
-	157: "Download operation timeout in seconds",
-	158: "Enable blacklist list update notification",
-	159: "Maximum number of blacklist search results",
-	160: "Enable proxy lookup on user login or chat",
-	161: "Email address required for proxy lookup",
-	162: "Minimal number of public proxy matches",
-	163: "Minutes to wait after hub is started",
-	164: "Seconds to process proxy lookup queue",
-	165: "Maximum number of proxy lookups to enqueue",
-	166: "Maximum number of proxy lookups to send",
-	167: "Explanation: %s",
-	168: "Disable proxy lookup failure notifications",
-	169: "Level of proxy lookup debug information",
-	170: "User agent: %s",
-	171: "Delete from waiting feed list",
-	172: "Set list block action",
-	173: "Item now set to block",
-	174: "Item now set to notify",
-	175: "Action: %s",
-	176: "Block",
-	177: "Notify",
-	178: "Blocking blacklisted login from %s with IP %s.%s: %s",
-	179: "Notifying blacklisted connection from %s.%s: %s",
-	180: "Notifying blacklisted login from %s with IP %s.%s: %s",
-	181: "Block action on public proxy detections",
-	182: "Block action on my list item detections",
-	183: "Notified connections: %s",
-	184: "Blacklisted login exception from %s with IP %s.%s: %s",
-	185: "Bot nick to register and send notifications",
-	186: "Search in exceptions",
-	187: "Except: %s",
-	188: "Item exception now disabled",
-	189: "Item exception now enabled",
-	190: "Set list exception usage",
-	191: "Exception usage on public proxy detections",
-	192: "Exception usage on my list item detections",
-	193: "Run exception lookup on notification actions",
-	194: "Exception list out of IP %s.%s: %s",
-	195: "Blocking blacklisted chat from %s with IP %s.%s: %s",
-	196: "Chat: %s",
-	197: "Notifying blacklisted chat from %s with IP %s.%s: %s",
-	198: "Blacklisted chat exception from %s with IP %s.%s: %s",
-	199: "Checking logged in user from IP %s.%s: %s",
-	200: "Checking chat user from IP %s.%s: %s",
-	201: "Local or private IP specified: %s.%s",
-	202: "Maximum number of proxy lookups per day",
-	203: "Resetting proxy lookup quote limit: %s",
-	204: "Proxy lookup quote limit reached on logged in user from IP %s.%s: %s",
-	205: "Proxy lookup quote limit reached on chat user from IP %s.%s: %s",
-	206: "Proxy lookup quote",
-	207: "Enable GeoIP ASN information on proxy detection",
-	208: "Enable GeoIP ASN information on exception lookup",
-	209: "Information not found",
-	210: "Function not supported",
-	211: "ASN: %s",
-	212: "Disable or enable item",
-	213: "Enabled",
-	214: "Disabled",
-	215: "Block action on ASN list item detections",
-	216: "Exception usage on ASN list item detections",
-	217: "ASN list",
-	218: "ASN items: %s",
-	219: "Show ASN list",
-	220: "asn",
-	221: "New ASN item",
-	222: "Delete ASN item",
-	223: "ASN list is empty.",
-	224: "Search in ASN list",
-	225: "Results for ASN: %s",
-	226: "No results for ASN: %s",
-	227: "Space separated AS numbers to block",
-	228: "Space separated AS numbers to except",
-	229: "Blocked ASN: %s",
-	230: "Excepted ASN: %s",
-	231: "Space separated nicks to skip proxy lookup"
 }
 
 bl_conf = {
@@ -369,7 +136,8 @@ bl_conf = {
 	"except_mylist": [1, "int", 0, 1, "Exception usage on my list item detections"],
 	"except_asnlist": [1, "int", 0, 1, "Exception usage on ASN list item detections"],
 	"action_extry": [0, "int", 0, 1, "Run exception lookup on notification actions"],
-	"extry_getasn": [0, "int", 0, 1, "Enable GeoIP ASN information on exception lookup"]
+	"extry_getasn": [0, "int", 0, 1, "Enable GeoIP ASN information on exception lookup"],
+	"lang_pref": ["", "str", 0, 2, "Translation file language prefix to use"]
 }
 
 bl_stat = {
@@ -383,6 +151,8 @@ bl_stat = {
 	"proxy": time.time ()
 }
 
+bl_lang = {}
+
 bl_list = [
 	#["http://list.iblocklist.com/?list=ijfqtofzixtwayqovmxn&fileformat=p2p&archiveformat=gz", "gzip-p2p", "TBG - Primary", 0, 0, 1, 1, 0],
 	#["http://list.iblocklist.com/?list=xoebmbyexwuiogmbyprb&fileformat=p2p&archiveformat=gz", "gzip-p2p", "Bluetack - Proxy", 0, 0, 1, 1, 0],
@@ -390,7 +160,8 @@ bl_list = [
 	#["http://te-home.net/blacklist.php?do=load&list=Proxy", "p2p", "TE - Proxy", 0, 0, 1, 1, 0],
 	#["http://te-home.net/blacklist.php?do=load&list=SOCKS", "p2p", "TE - SOCKS", 0, 0, 1, 1, 0],
 	#["http://ledo.feardc.net/mirror/torexit.list", "single", "Tor exit", 60, 0, 1, 1, 0],
-	#["http://ledo.feardc.net/mirror/torserver.list", "single", "Tor server", 60, 0, 1, 1, 0]
+	#["http://ledo.feardc.net/mirror/torserver.list", "single", "Tor server", 60, 0, 1, 1, 0],
+	#["http://stopforumspam.com/downloads/listed_ip_7.gz", "gzip-single", "Stop forum spam", 1440, 0, 1, 1, 0]
 ]
 
 bl_item = [[] for pos in xrange (256)]
@@ -401,14 +172,7 @@ bl_exli = []
 bl_feed = []
 
 def bl_main ():
-	global bl_defs, bl_lang, bl_conf, bl_list, bl_myli, bl_exli
-
-	vh.SQL (
-		"create table if not exists `py_bl_lang` ("\
-			"`id` bigint(20) unsigned not null primary key,"\
-			"`value` text collate utf8_unicode_ci not null"\
-		") engine = myisam default character set utf8 collate utf8_unicode_ci"
-	)
+	global bl_defs, bl_conf, bl_list, bl_myli, bl_exli
 
 	vh.SQL (
 		"create table if not exists `py_bl_conf` ("\
@@ -463,19 +227,6 @@ def bl_main ():
 	vh.SQL ("alter table `py_bl_myli` add column `off` tinyint(1) unsigned not null default 0 after `title`")
 	vh.SQL ("alter table `py_bl_exli` add column `off` tinyint(1) unsigned not null default 0 after `title`")
 
-	for id, item in bl_lang.iteritems ():
-		vh.SQL ("insert ignore into `py_bl_lang` (`id`, `value`) values (%s, '%s')" % (str (id), bl_repsql (item)))
-		bl_lang [id] = [item, item]
-
-	sql, rows = vh.SQL ("select * from `py_bl_lang`", 300) # todo: dont forget about limit
-
-	if sql and rows:
-		for item in rows:
-			id = int (item [0])
-
-			if id >= 0 and len (bl_lang) - 1 >= id and item [1].count ("%s") == bl_lang [id][0].count ("%s"):
-				bl_lang [id][1] = item [1]
-
 	for name, value in bl_conf.iteritems ():
 		vh.SQL ("insert ignore into `py_bl_conf` (`name`, `value`) values ('%s', '%s')" % (bl_repsql (name), bl_repsql (str (value [0]))))
 
@@ -485,6 +236,7 @@ def bl_main ():
 		for item in rows:
 			bl_setconf (item [0], item [1], False)
 
+	bl_langfile (bl_conf ["lang_pref"][0])
 	sql, rows = vh.SQL ("select * from `py_bl_list` order by `off` asc, `action` desc, `title` asc", 100) # todo: dont forget about limit
 
 	if sql and rows:
@@ -870,12 +622,45 @@ def bl_waitfeed (addr, prev = False):
 	bl_feed.append ([addr, now])
 	return 1
 
+def bl_langfile (pref = None):
+	global bl_lang
+	bl_lang = {}
+
+	if not pref or pref == "en":
+		return True
+
+	name = os.path.join (vh.basedir, "scripts", ("black_%s.lang" % pref))
+
+	if not os.path.isfile (name):
+		return False
+
+	file = None
+
+	try:
+		file = open (name, "r")
+	except:
+		pass
+
+	if not file:
+		return False
+
+	find = re.compile ("^(.+)\|(.+)$")
+
+	for line in file:
+		if len (line) > 2 and line [0:1] != "#":
+			part = find.findall (line.replace ("\r", "").replace ("\n", ""))
+
+			if part and part [0][0].count ("%s") == part [0][1].count ("%s"):
+				bl_lang [part [0][0]] = part [0][1]
+
+	file.close ()
+	return True
+
 def bl_getlang (data):
 	global bl_lang
 
-	for item in bl_lang.itervalues ():
-		if data == item [0]:
-			return item [1]
+	if data in bl_lang:
+		return bl_lang [data]
 
 	return data
 
@@ -992,6 +777,10 @@ def bl_setconf (name, value, update = True):
 				bl_prox = [[] for pos in xrange (256)]
 				bl_makedir (bl_defs ["datadir"])
 				bl_defs ["useragent"][1] = None
+
+		elif name == "lang_pref":
+			if new != old:
+				bl_langfile (new)
 
 		vh.SQL ("update `py_bl_conf` set `value` = '%s' where `name` = '%s'" % (bl_repsql (str (new)), bl_repsql (name)))
 
@@ -1355,7 +1144,7 @@ def OnUserCommand (nick, data):
 	return 1
 
 def OnOperatorCommand (user, data):
-	global bl_defs, bl_lang, bl_conf, bl_stat, bl_list, bl_item, bl_prox, bl_myli, bl_asn, bl_exli, bl_feed
+	global bl_defs, bl_conf, bl_stat, bl_list, bl_item, bl_prox, bl_myli, bl_asn, bl_exli, bl_feed
 
 	if data [1:3] == "bl":
 		if vh.GetUserClass (user) < bl_conf ["class_conf"][0]:
@@ -1393,6 +1182,7 @@ def OnOperatorCommand (user, data):
 
 			out = bl_getlang ("Blacklist statistics") + ":\r\n"
 			out += ("\r\n [*] " + bl_getlang ("Version: %s")) % bl_defs ["version"]
+			out += ("\r\n [*] " + bl_getlang ("Translation: %s")) % (bl_conf ["lang_pref"][0] or "en").upper ()
 			out += ("\r\n [*] " + bl_getlang ("Loaded lists: %s")) % (bl_getlang ("%s of %s") % (str (lists), str (len (bl_list))))
 			out += ("\r\n [*] " + bl_getlang ("Blacklisted items: %s")) % str (size)
 			out += ("\r\n [*] " + bl_getlang ("My items: %s")) % (bl_getlang ("%s of %s") % (str (myoff), str (len (bl_myli))))
@@ -2388,47 +2178,6 @@ def OnOperatorCommand (user, data):
 			bl_reply (user, out)
 			return 0
 
-		if data [4:8] == "lang":
-			out = bl_getlang ("Translation list") + ":\r\n\r\n"
-
-			for id, lang in sorted (bl_lang.iteritems ()):
-				out += (" %s. %s = %s\r\n") % (str (id), lang [0], lang [1])
-
-			bl_reply (user, out)
-			return 0
-
-		if data [4:8] == "tran":
-			pars = re.findall ("^(\\S+)[ ]*(.*)$", data [9:])
-
-			if not pars or not pars [0][0] or not pars [0][1]:
-				bl_reply (user, bl_getlang ("Missing command parameters: %s") % ("tran <" + bl_getlang ("id") + "> <" + bl_getlang ("value") + ">"))
-				return 0
-
-			if pars [0][0].isdigit ():
-				id = int (pars [0][0])
-			else:
-				bl_reply (user, bl_getlang ("Missing command parameters: %s") % ("tran <" + bl_getlang ("id") + "> <" + bl_getlang ("value") + ">"))
-				return 0
-
-			if id >= 0 and len (bl_lang) - 1 >= id:
-				if pars [0][1].count ("%s") == bl_lang [id][1].count ("%s"):
-					vh.SQL ("update `py_bl_lang` set `value` = '%s' where `id` = %s" % (bl_repsql (pars [0][1]), str (id)))
-					old, bl_lang [id][1] = bl_lang [id][1], pars [0][1]
-
-					out = (bl_getlang ("Updated translation with ID: %s") + "\r\n") % str (id)
-					out += ("\r\n [*] " + bl_getlang ("Old value: %s")) % old
-					out += ("\r\n [*] " + bl_getlang ("New value: %s") + "\r\n") % pars [0][1]
-					bl_reply (user, out)
-				else:
-					out = (bl_getlang ("Parameter count mismatch in translation with ID: %s") + "\r\n") % str (id)
-					out += ("\r\n [*] " + bl_getlang ("Old value: %s")) % bl_lang [id][1]
-					out += ("\r\n [*] " + bl_getlang ("New value: %s") + "\r\n") % pars [0][1]
-					bl_reply (user, out)
-			else:
-				bl_reply (user, bl_getlang ("List out of item with ID: %s") % str (id))
-
-			return 0
-
 		out = bl_getlang ("Blacklist usage") + ":\r\n\r\n"
 
 		out += " stat\t\t\t\t\t- " + bl_getlang ("Script statistics") + "\r\n"
@@ -2469,10 +2218,7 @@ def OnOperatorCommand (user, data):
 		out += " extry <" + bl_getlang ("addr") + ">\t\t\t\t- " + bl_getlang ("Search in exceptions") + "\r\n\r\n"
 
 		out += " conf\t\t\t\t\t- " + bl_getlang ("Show current configuration") + "\r\n"
-		out += " set <" + bl_getlang ("item") + "> [" + bl_getlang ("value") + "]\t\t\t\t- " + bl_getlang ("Set configuration item") + "\r\n\r\n"
-
-		out += " lang\t\t\t\t\t- " + bl_getlang ("Show current translation") + "\r\n"
-		out += " tran <" + bl_getlang ("id") + "> <" + bl_getlang ("value") + ">\t\t\t\t- " + bl_getlang ("Set translation string") + "\r\n"
+		out += " set <" + bl_getlang ("item") + "> [" + bl_getlang ("value") + "]\t\t\t\t- " + bl_getlang ("Set configuration item") + "\r\n"
 
 		bl_reply (user, out)
 		return 0

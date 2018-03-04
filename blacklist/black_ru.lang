@@ -1,0 +1,238 @@
+# Language: ru_RU
+# Charset: CP1251
+# Version: 1.2.3
+# Author: KCAHDEP
+# Email: admin@milenahub.ru
+
+Blacklist %s startup|Blacklist %s запущен
+Exception|Исключение
+Failed with HTTP error|Отказ с ошибкой HTTP
+Failed with URL error|Отказ с ошибкой URL
+Failed with unknown error|Отказ с неизвестной ошибкой
+Failed to compile pattern|Компиляция шаблона не удалась
+File is not compressed with GZIP|Файл не сжат с помощью GZIP
+Failed to read data|Не удалось прочитать данные
+%s items loaded|Загружено %s пунктов
+Unknown list type|Неизвестный вид списка
+Failed to open file|Не удалось открыть файл
+My list|Мой список
+Value too low|Значение слишком маленькое
+Value too high|Значение слишком большое
+Value is not a number|Значение не является числом
+Value too short|Значение слишком  короткое
+Value too long|Значение слишком длинное
+Item not found|Пункт не найден
+Blacklisted connection exception from %s.%s: %s|Подключение из исключений черного списка с %s.%s: %s
+Blocking blacklisted connection from %s.%s: %s|Блокировано подключение из черного списка с %s.%s: %s
+You don't have access to this command.|У вас нет доступа к этой команде.
+Blacklist statistics|Статистика Blacklist
+Version: %s|Версия: %s
+Loaded lists: %s|Загружено списков: %s
+Blacklisted items: %s|Пунктов в черном списке: %s
+Excepted items: %s|Исключено пунктов: %s
+Blocked connections: %s|Заблокированных соединений: %s
+Excepted connections: %s|Исключенных соединений: %s
+Total connections: %s|Всего подключений: %s
+Missing command parameters: %s|Отсутствуют параметры команды: %s
+Results for IP: %s|Результаты по IP: %s
+No results for IP: %s|Нет результатов по IP: %s
+Results for title: %s|Результаты по заголовку: %s
+No results for title: %s|Нет результатов по заголовку: %s
+Blacklist list is empty.|Список Blacklist пуст
+Blacklist list|Список Blacklist 
+ID: %s|ID: %s
+List: %s|Список: %s
+Type: %s|Тип: %s
+Title: %s|Заголовок: %s
+Update: %s|Обновление: %s
+On load|При загрузке
+%s minute|%s минута
+%s minutes|%s минут
+Disabled: %s|Отключен: %s
+No|Нет
+Yes|Да
+Type must be one of: %s|Тип должен быть одним из: %s
+Update must be in range: %s - %s|Обновление должно быть в диапазоне: %s - %s
+Item already in list|Пункт уже в списке
+Item added to list|Пункт добавлен в список
+Status: %s|Статус: %s
+Item deleted from list|Пункт удален из списка
+List out of item with ID: %s|В списке нет пункта с ID: %s
+Item now disabled|Пункт отключен
+Item now enabled|Пункт включен
+Exception list is empty.|Список исключений пуст.
+Exception list|Список исключений
+Lower IP: %s.%s|Меньший IP: %s.%s
+Higher IP: %s.%s|Больший IP: %s.%s
+Lower IP not valid: %s|Меньший IP не действителен: %s
+Higher IP not valid: %s|Больший IP не действителен: %s
+Configuration list|Список настроек
+Name: %s|Название: %s
+Range: %s - %s|Диапазон: %s - %s
+Value: %s|Значение: %s
+Item configuration|Установка настройки
+Old value: %s|Старое знаечение: %s
+New value: %s|Новое значение: %s
+Waiting feed list is empty.|Список задержки оповещений пуст.
+Waiting feed list|Список задержки оповещений
+IP: %s.%s|IP: %s.%s
+Expires: %s|Истекает: %s
+Blacklist usage|Использование Blacklist
+Script statistics|Статистика скрипта
+Search in loaded lists|Поиск в загруженных списках
+Show all lists|Показать все списки
+Load new list|Загрузить новый список
+Disable or enable list|Отключить или включить список
+Delete existing list|Удалить существующий список
+Show exception list|Показать список исключений
+New exception item|Новый пункт исключений
+Delete an exception|Удалить исключение
+Show current configuration|Показать текущие настройки
+Set configuration item|Установить настройку
+Show waiting feed list|Показать список задержки оповещений
+value|значение
+item|пункт
+id|id
+addr|адрес
+range|диапазон
+title|заголовок
+list|список
+type|тип
+update|обновление
+None|Пусто
+Set translation string|Изменить строку перевода
+Show current translation|Показать текущий перевод
+Translation list|Список переводов
+Updated translation with ID: %s|Обновлен перевод с ID: %s
+Parameter count mismatch in translation with ID: %s|Несоответствие количества параметров в переводе с ID: %s
+File is not compressed with ZIP|Файл не сжат при помощи ZIP
+Force load of existing list|Принудительно загрузить список
+Item is disabled: %s|Пункт отключен: %s
+Item load result|Результат загрузки пункта
+Failed to load JSON|Не удалось загрузить JSON
+Failed to parse JSON|Не удалось разобрать JSON
+Failed to get status|Не удалось получить статус
+Unexpected status: %s|Неожиданный статус: %s
+Failed to get result|Не удалось получить результаты
+Failed to open URL|Не удалось открыть ссылку
+Public proxy lookup|Запрос публичных прокси
+Not enough matches for %s.%s: %s of %s|Не достаточно совпадений для %s.%s: %s из %s
+Public proxy detected: %s.%s|Обнаружен публичный прокси: %s.%s
+Failed proxy detection for %s.%s: %s|Не удалось обнаружение прокси для %s.%s: %s
+Delete blacklisted item|Удалить блокированный пункт
+List out of item with range: %s - %s|В списке нет пунктов с диапазоном: %s - %s
+Data directory: %s|Папка для данных: %s
+Failed to create directory|Не удалось создать папку
+Failed to execute command|Не удалось выполнить команду
+Public proxy|Публичный прокси
+Show waiting proxy lookups|Показать очередь запросов прокси
+Waiting proxy lookup list is empty.|Очередь запросов прокси пуста.
+Waiting proxy lookups|Очередь запросов прокси
+Time: %s|Время: %s
+Users: %s|Пользователей: %s
+Feature is disabled.|Функция отключена.
+Total: %s|Всего: %s
+Queued|В очереди
+Waiting|В ожидании
+Failed to get version|Не удалось получить версию
+%s version: %s|Версия %s: %s
+%s of %s|%s из %s
+Done|Выполнено
+My list is empty.|Мой список пуст.
+Reload all lists|Перезагрузить все списки
+My item|Мой пункт
+Reload results|Результаты перезагрузки
+Show my list|Показать мой список
+New my item|Новый пункт моего списка
+Delete my item|Удалить мой пункт
+My items: %s|Моих пунктов: %s
+Excepted country: %s=%s|Исключенная страна: %s=%s
+Blocked country: %s=%s|Заблокированная страна: %s=%s
+User nick to receive all feed messages|Ник пользователя для получиния всех уведомлений
+Space separated country codes to block|Список кодов стран через пробел подлежащих для блокировки
+Space separated country codes to except|Список кодов стран через пробел подлежащих для исключения
+Minimal class to receive feed messages|Минимальный класс для получения уведомлений
+Minimal class to access script commands|Минимальный класс для доступа к командам скрипта
+Minimal class to skip public proxy lookup|Минимальный класс для пропуска запроса публичного прокси
+Minutes to delay same IP notifications|Количество минут для задержки уведомлений одного IP
+Download operation timeout in seconds|Таймаут операции скачивания в секундах
+Enable blacklist list update notification|Включить уведомление об обновлениях черного списка
+Maximum number of blacklist search results|Максимальное число результатов поиска по черному списку
+Enable proxy lookup on user login or chat|Включить определение прокси при написании сообщения в чат
+Email address required for proxy lookup|Требуется адрес электронной почты для поиска прокси
+Minimal number of public proxy matches|Минимальное количество совпадений публичных прокси
+Minutes to wait after hub is started|Количество минут для ожидания после запуска хаба
+Seconds to process proxy lookup queue|Количество секунд для обработки очереди запросов прокси
+Maximum number of proxy lookups to enqueue|Максимальный размер очереди для запросов прокси
+Maximum number of proxy lookups to send|Максимальное количество запросов прокси для отправки
+Explanation: %s|Объяснение: %s
+Disable proxy lookup failure notifications|Отключить уведомление ошибок для запросов прокси
+Level of proxy lookup debug information|Уровень отладочной степени для запросов прокси
+User agent: %s|Клиент пользователя: %s
+Set list block action|Установить действие блокировки для списка
+Item now set to block|Пункт установлен для блокировки
+Item now set to notify|Пункт установлен для уведомления
+Action: %s|Действие: %s
+Block|Блокировка
+Notify|Уведомление
+Blocking blacklisted login from %s with IP %s.%s: %s|Блокирован вход из черного списка от %s с IP %s.%s: %s
+Notifying blacklisted connection from %s.%s: %s|Уведомление о подключение из черного списка с %s.%s: %s
+Notifying blacklisted login from %s with IP %s.%s: %s|Уведомление о входе из черного списка от %s с IP %s.%s: %s
+Block action on public proxy detections|Действие блокировки при обнаружении публичных прокси
+Block action on my list item detections|Действие блокировки при обнаружении из моего списка
+Notified connections: %s|Уведомленных соединений: %s
+Blacklisted login exception from %s with IP %s.%s: %s|Вход с исключением черного списка от %s с IP %s.%s: %s
+Bot nick to register and send notifications|Ник бота для зарегистрации и отправки уведомлений
+Search in exceptions|Поиск в исключениях
+Except: %s|Исключение: %s
+Item exception now disabled|Пункт исключения отключен
+Item exception now enabled|Пункт исключения включен
+Set list exception usage|Установить использование исключений для списка
+Exception usage on public proxy detections|Использование исключений при обнаружении публичных прокси
+Exception usage on my list item detections|Использование исключений при обнаружении в моем списке
+Run exception lookup on notification actions|Выполнить поиска исключений для действия уведомления
+Exception list out of IP %s.%s: %s|Список исключений из IP %s.%s: %s
+Delete from waiting feed list|Удалить из списка задержки оповещения
+Waiting feed list has been cleared.|Список задержки оповещения был очищен.
+Bad command parameters: %s|Неверные параметры команды: %s
+Waiting feed list item deleted: %s.%s|Пункт списка задержки оповещений удален: %s.%s
+Waiting feed list out of item: %s.%s|Из пункта списка задержки оповещений: %s.%s
+Error status: %s|Состояние ошибки: %s
+Unknown|Неизвестно
+Blocking blacklisted chat from %s with IP %s.%s: %s|Блокирован вход из черного списка от MC  %s с IP %s.%s: %s
+Chat: %s|MC: %s
+Notifying blacklisted chat from %s with IP %s.%s: %s|Уведомление о входе из черного списка от MC %s с IP %s.%s: %s
+Blacklisted chat exception from %s with IP %s.%s: %s|Вход с исключением черного списка от MC %s с IP %s.%s: %s
+Checking logged in user from IP %s.%s: %s|Проверка пользователя с IP %s.%s: %s
+Checking chat user from IP %s.%s: %s|Проверка пользователя в MC с IP %s.%s: %s
+Local or private IP specified: %s.%s|Указан локальный или приватный IP-адрес: %s.%s
+Maximum number of proxy lookups per day|Максимальное количество прокси-запросов в день
+Resetting proxy lookup quote limit: %s|Сброс лимита прокси-запросов: %s
+Proxy lookup quote limit reached on logged in user from IP %s.%s: %s|Достигнут лимит прокси-запросов при входе пользователя с IP-адреса %s.%s: %s
+Proxy lookup quote limit reached on chat user from IP %s.%s: %s|Достигнут лимит прокси-запросов по сообщению пользователя в чат с IP-адреса %s.%s: %s
+Proxy lookup quote|Лимит прокси-запросов
+Enable GeoIP ASN information on proxy detection|Показать информацию о GeoIP ASN при детекте прокси
+Enable GeoIP ASN information on exception lookup|Показать информацию о GeoIP ASN при проверке на исключение
+Information not found|Информация не найдена
+Function not supported|Функция не доступна
+ASN: %s|ASN: %s
+Disable or enable item|Отключить или включить пункт
+Enabled|Включено
+Disabled|Отключено
+Block action on ASN list item detections|Действие блокировки при обнаружении из списка ASN
+Exception usage on ASN list item detections|Использование исключений при обнаружении в списке ASN
+ASN list|Список ASN
+ASN items: %s|Пунктов ASN: %s
+Show ASN list|Показать список ASN
+asn|asn
+New ASN item|Добавить пункт ASN
+Delete ASN item|Удалить пункт ASN
+ASN list is empty.|Список ASN пуст.
+Search in ASN list|Поиск в списке ASN
+Results for ASN: %s|Результаты по ASN: %s
+No results for ASN: %s|Нет результатов по ASN: %s
+Space separated AS numbers to block|Список AS номеров через пробел подлежащих для блокировки
+Space separated AS numbers to except|Список AS номеров через пробел подлежащих для исключения
+Blocked ASN: %s|Заблокированный ASN: %s
+Excepted ASN: %s|Исключенный ASN: %s
+Space separated nicks to skip proxy lookup|Список ников через пробел подлежащих исключению

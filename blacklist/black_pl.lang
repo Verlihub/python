@@ -1,34 +1,34 @@
-# Language: en_GB
-# Charset: CP1252
+# Language: pl_PL
+# Charset: CP1250
 # Version: 1.2.3
-# Author: RoLex
-# Email: webmaster@feardc.net
+# Author: Zorro
+# Email: zbyszekslyz@hostpl.eu
 
-Blacklist %s startup|
-Exception|
-Failed with HTTP error|
-Failed with URL error|
-Failed with unknown error|
-Failed to compile pattern|
-File is not compressed with GZIP|
-Failed to read data|
-%s items loaded|
-Unknown list type|
-Failed to open file|
-My list|
-Value too low|
-Value too high|
-Value is not a number|
-Value too short|
-Value too long|
-Item not found|
-Blacklisted connection exception from %s.%s: %s|
-Blocking blacklisted connection from %s.%s: %s|
-You don't have access to this command.|
-Blacklist statistics|
-Version: %s|
-Loaded lists: %s|
-Blacklisted items: %s|
+Blacklist %s startup|Blacklist %s uruchomiony
+Exception|Wyjatek
+Failed with HTTP error|Nie powiodlo sie z powodu bledu HTTP
+Failed with URL error|Nie powiodlo sie z powodu bledu URL
+Failed with unknown error|Niepowiodlo sie z powodu nieznanego bledu
+Failed to compile pattern|Nie powiodlo sie z powodu bledu wzoru
+File is not compressed with GZIP|Plik nie jest skompresowany w GZIP
+Failed to read data|Nie mozna odczytac danych
+%s items loaded|%s elementow zaladowanych
+Unknown list type|Nieznany typ listy
+Failed to open file|Nie udalo sie otworzyc pliku
+My list|Moja lista
+Value too low|Wartosc zbyt niska
+Value too high|Wartosc zbyt wysoka
+Value is not a number|Wartosc nie jest liczba
+Value too short|Wartosc zbyt krotka
+Value too long|Wartosc zbyt d³uga
+Item not found|Pozycja nieznaleziona
+Blacklisted connection exception from %s.%s: %s|Polaczenie z wyjatkiem z czarnrj listy %s.%s: %s
+Blocking blacklisted connection from %s.%s: %s|Blokowanie polaczen z czarnej listy 
+You don't have access to this command.|Nie masz dostepu do tej komendy.
+Blacklist statistics|Statystyki Blacklisty
+Version: %s|Wersja: %s
+Loaded lists: %s|Zaladowane listy: %s
+Blacklisted items: %s|Pozycji Blacklisty: %s
 Excepted items: %s|
 Blocked connections: %s|
 Excepted connections: %s|
@@ -40,17 +40,17 @@ Results for title: %s|
 No results for title: %s|
 Blacklist list is empty.|
 Blacklist list|
-ID: %s|
-List: %s|
-Type: %s|
-Title: %s|
-Update: %s|
-On load|
-%s minute|
+ID: %s|ID: %s
+List: %s|Lista: %s
+Type: %s|Rodzaj: %s
+Title: %s|Tytul: %s
+Update: %s|Aktualizacja: %s
+On load|Na obciazenie
+%s minute|%s minuta
 %s minutes|
-Disabled: %s|
-No|
-Yes|
+Disabled: %s|Wylaczone: %s
+No|Nie
+Yes|Tak
 Type must be one of: %s|
 Update must be in range: %s - %s|
 Item already in list|
@@ -100,6 +100,11 @@ list|
 type|
 update|
 None|
+Set translation string|
+Show current translation|
+Translation list|
+Updated translation with ID: %s|
+Parameter count mismatch in translation with ID: %s|
 File is not compressed with ZIP|
 Force load of existing list|
 Item is disabled: %s|
@@ -231,4 +236,3 @@ Space separated AS numbers to except|
 Blocked ASN: %s|
 Excepted ASN: %s|
 Space separated nicks to skip proxy lookup|
-Translation: %s|
