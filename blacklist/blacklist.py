@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.3.3
+# Blacklist 1.2.3.4
 # © 2010-2018 RoLex
 # Thanks to Frog
 
@@ -84,12 +84,16 @@
 # 1.2.3.2 - Added "nick_skip" configuration for space separated list of users to skip proxy lookup
 # 1.2.3.3 - Added translation file support instead of "lang" and "tran" commands
 # 1.2.3.3 - Added "lang_pref" configuration as translation file language prefix
+# 1.2.3.4 - Added "ver" command to automatically update script and loaded translation file
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.3.3", # todo: dont forget to update
+	"version": "1.2.3.4", # todo: dont forget to update
+	"verfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b6c6973742e766572",
+	"pyfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b6c6973742e7079",
+	"langfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b5f25732e6c616e67",
 	"curlver": ["curl", "-V"],
 	"curlreq": "6375726c202d47202d4c202d2d6d61782d726564697273202573202d2d7265747279202573202d2d636f6e6e6563742d74696d656f7574202573202d6d202573202d412022257322202d652022257322202d73202d6f202225732220222573222026",
 	"ipintel": "687474703a2f2f636865636b2e6765746970696e74656c2e6e65742f636865636b2e7068703f666f726d61743d6a736f6e26636f6e746163743d25732669703d2573",
@@ -622,7 +626,7 @@ def bl_waitfeed (addr, prev = False):
 	bl_feed.append ([addr, now])
 	return 1
 
-def bl_langfile (pref = None):
+def bl_langfile (pref):
 	global bl_lang
 	bl_lang = {}
 
@@ -2178,6 +2182,92 @@ def OnOperatorCommand (user, data):
 			bl_reply (user, out)
 			return 0
 
+		if data [4:7] == "ver":
+			ver = bl_httpreq (bl_defs ["verfile"].decode ("hex"))
+
+			if not ver [0]:
+				bl_reply (user, bl_getlang ("Unable to download version file: %s") % ver [1])
+				return 0
+
+			new, old = ver [1].replace (".", ""), bl_defs ["version"].replace (".", "")
+
+			if not new.isdigit () or not old.isdigit ():
+				bl_reply (user, bl_getlang ("Unable to download version file: %s") % bl_getlang ("Invalid version number"))
+				return 0
+
+			if int (new) <= int (old):
+				bl_reply (user, bl_getlang ("You are already running latest version: %s") % bl_defs ["version"])
+				return 0
+
+			bl_reply (user, bl_getlang ("New version is available for download: %s") % ver [1])
+			res = bl_httpreq (bl_defs ["pyfile"].decode ("hex"))
+
+			if not res [0]:
+				bl_reply (user, bl_getlang ("Unable to download script file: %s") % res [1])
+				return 0
+
+			if not ("# Blacklist %s" % ver [1]) in res [1]:
+				bl_reply (user, bl_getlang ("Unable to download script file: %s") % bl_getlang ("Invalid file content"))
+				return 0
+
+			temp, file = os.path.join (vh.basedir, "blacklist.temp"), None
+
+			try:
+				file = open (temp, "wb")
+			except:
+				pass
+
+			if not file:
+				bl_reply (user, bl_getlang ("Unable to update script file: %s") % bl_getlang ("Failed to write temporary file"))
+				return 0
+
+			file.write (res [1])
+			file.close ()
+			name = os.path.join (vh.basedir, "scripts", "blacklist.py")
+
+			if os.path.isfile (name):
+				bl_remfile (name)
+
+			os.rename (temp, name)
+
+			if not os.path.isfile (name):
+				bl_reply (user, bl_getlang ("Unable to update script file: %s") % bl_getlang ("Failed to move file"))
+				return 0
+
+			if bl_conf ["lang_pref"][0] and bl_conf ["lang_pref"][0] != "en":
+				res = bl_httpreq (bl_defs ["langfile"].decode ("hex") % bl_conf ["lang_pref"][0])
+
+				if res [0]:
+					if ("# Version: %s" % ver [1][:-2]) in res [1]:
+						temp, file = os.path.join (vh.basedir, "black_%s.temp" % bl_conf ["lang_pref"][0]), None
+
+						try:
+							file = open (temp, "wb")
+						except:
+							pass
+
+						if file:
+							file.write (res [1])
+							file.close ()
+							name = os.path.join (vh.basedir, "scripts", "black_%s.lang" % bl_conf ["lang_pref"][0])
+
+							if os.path.isfile (name):
+								bl_remfile (name)
+
+							os.rename (temp, name)
+
+							if not os.path.isfile (name):
+								bl_reply (user, bl_getlang ("Unable to update translation file: %s") % bl_getlang ("Failed to move file"))
+						else:
+							bl_reply (user, bl_getlang ("Unable to update translation file: %s") % bl_getlang ("Failed to write temporary file"))
+					else:
+						bl_reply (user, bl_getlang ("Unable to download translation file: %s") % bl_getlang ("Invalid file content"))
+				else:
+					bl_reply (user, bl_getlang ("Unable to download translation file: %s") % res [1])
+
+			bl_reply (user, bl_getlang ("Finish update with following command: %s") % "!pyreload blacklist.py")
+			return 0
+
 		out = bl_getlang ("Blacklist usage") + ":\r\n\r\n"
 
 		out += " stat\t\t\t\t\t- " + bl_getlang ("Script statistics") + "\r\n"
@@ -2218,7 +2308,9 @@ def OnOperatorCommand (user, data):
 		out += " extry <" + bl_getlang ("addr") + ">\t\t\t\t- " + bl_getlang ("Search in exceptions") + "\r\n\r\n"
 
 		out += " conf\t\t\t\t\t- " + bl_getlang ("Show current configuration") + "\r\n"
-		out += " set <" + bl_getlang ("item") + "> [" + bl_getlang ("value") + "]\t\t\t\t- " + bl_getlang ("Set configuration item") + "\r\n"
+		out += " set <" + bl_getlang ("item") + "> [" + bl_getlang ("value") + "]\t\t\t\t- " + bl_getlang ("Set configuration item") + "\r\n\r\n"
+
+		out += " ver\t\t\t\t\t- " + bl_getlang ("Update script to latest version") + "\r\n"
 
 		bl_reply (user, out)
 		return 0

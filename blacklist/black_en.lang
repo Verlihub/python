@@ -232,3 +232,16 @@ Blocked ASN: %s|
 Excepted ASN: %s|
 Space separated nicks to skip proxy lookup|
 Translation: %s|
+Update script to latest version|
+Unable to download version file: %s|
+Invalid version number|
+You are already running latest version: %s|
+New version is available for download: %s|
+Unable to download script file: %s|
+Invalid file content|
+Unable to update script file: %s|
+Failed to write temporary file|
+Unable to download translation file: %s|
+Unable to update translation file: %s|
+Finish update with following command: %s|
+Failed to move file|

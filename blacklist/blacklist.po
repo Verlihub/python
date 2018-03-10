@@ -3,8 +3,8 @@ msgstr ""
 "Project-Id-Version: Blacklist\n"
 "Project-Version: 1.2.3\n"
 "Report-Msgid-Bugs-To: RoLex <webmaster@feardc.net>\n"
-"POT-Creation-Date: 2018-03-04 00:00+0200\n"
-"PO-Revision-Date: 2018-03-04 00:00+0200\n"
+"POT-Creation-Date: 2018-03-10 00:00+0200\n"
+"PO-Revision-Date: 2018-03-10 00:00+0200\n"
 "Last-Translator: RoLex <webmaster@feardc.net>\n"
 "Language-Team: RoLex <webmaster@feardc.net>\n"
 "Language: en_GB\n"
@@ -695,4 +695,43 @@ msgid "Space separated nicks to skip proxy lookup"
 msgstr ""
 
 msgid "Translation: %s"
+msgstr ""
+
+msgid "Update script to latest version"
+msgstr ""
+
+msgid "Unable to download version file: %s"
+msgstr ""
+
+msgid "Invalid version number"
+msgstr ""
+
+msgid "You are already running latest version: %s"
+msgstr ""
+
+msgid "New version is available for download: %s"
+msgstr ""
+
+msgid "Unable to download script file: %s"
+msgstr ""
+
+msgid "Invalid file content"
+msgstr ""
+
+msgid "Unable to update script file: %s"
+msgstr ""
+
+msgid "Failed to write temporary file"
+msgstr ""
+
+msgid "Unable to download translation file: %s"
+msgstr ""
+
+msgid "Unable to update translation file: %s"
+msgstr ""
+
+msgid "Finish update with following command: %s"
+msgstr ""
+
+msgid "Failed to move file"
 msgstr ""
