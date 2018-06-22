@@ -245,3 +245,4 @@ Unable to download translation file: %s|
 Unable to update translation file: %s|
 Finish update with following command: %s|
 Failed to move file|
+Space separated AS numbers to skip notifying|

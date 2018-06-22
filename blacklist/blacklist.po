@@ -735,3 +735,6 @@ msgstr ""
 
 msgid "Failed to move file"
 msgstr ""
+
+msgid "Space separated AS numbers to skip notifying"
+msgstr ""

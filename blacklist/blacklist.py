@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.3.4
+# Blacklist 1.2.3.5
 # © 2010-2018 RoLex
 # Thanks to Frog
 
@@ -85,12 +85,13 @@
 # 1.2.3.3 - Added translation file support instead of "lang" and "tran" commands
 # 1.2.3.3 - Added "lang_pref" configuration as translation file language prefix
 # 1.2.3.4 - Added "ver" command to automatically update script and loaded translation file
+# 1.2.3.5 - Added "asn_nofeed" configuration for space separated AS numbers to skip notifying
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.3.4", # todo: dont forget to update
+	"version": "1.2.3.5", # todo: dont forget to update
 	"verfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b6c6973742e766572",
 	"pyfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b6c6973742e7079",
 	"langfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b5f25732e6c616e67",
@@ -110,10 +111,11 @@ bl_defs = {
 bl_conf = {
 	"nick_bot": ["", "str", 0, 250, "Bot nick to register and send notifications"],
 	"nick_feed": ["", "str", 0, 250, "User nick to receive all feed messages"],
-	"code_block": ["", "str", 0, 500, "Space separated country codes to block"],
-	"code_except": ["", "str", 0, 500, "Space separated country codes to except"],
+	"code_block": ["", "str", 0, 1000, "Space separated country codes to block"],
+	"code_except": ["", "str", 0, 1000, "Space separated country codes to except"],
 	"asn_block": ["", "str", 0, 1000, "Space separated AS numbers to block"],
 	"asn_except": ["", "str", 0, 1000, "Space separated AS numbers to except"],
+	"asn_nofeed": ["", "str", 0, 500, "Space separated AS numbers to skip notifying"],
 	"class_feed": [5, "int", 0, 11, "Minimal class to receive feed messages"],
 	"class_conf": [10, "int", 3, 11, "Minimal class to access script commands"],
 	"class_skip": [3, "int", 0, 11, "Minimal class to skip public proxy lookup"],
@@ -973,7 +975,9 @@ def OnNewConn (addr):
 		for item in bl_asn:
 			if not item [1] and item [0].lower () in lowasn:
 				if not bl_conf ["action_asnlist"][0]: # notification only
-					if bl_waitfeed (addr):
+					if bl_conf ["asn_nofeed"][0] and asnum and str ().join ([" ", asnum, " "]) in str ().join ([" ", bl_conf ["asn_nofeed"][0], " "]): # skip notification
+						pass
+					elif bl_waitfeed (addr):
 						bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, urlasn))
 
 					bl_stat ["notify"] += 1
