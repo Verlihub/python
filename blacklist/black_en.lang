@@ -1,6 +1,6 @@
 # Language: en_GB
 # Charset: CP1252
-# Version: 1.2.3
+# Version: 1.2.4
 # Author: RoLex
 # Email: webmaster@feardc.net
 
@@ -246,3 +246,5 @@ Unable to update translation file: %s|
 Finish update with following command: %s|
 Failed to move file|
 Space separated AS numbers to skip notifying|
+You're not allowed to chat due to public proxy detection of your IP address.|
+Your message will be delayed for proxy lookup of your IP address.|

@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.3.5
+# Blacklist 1.2.4.0
 # © 2010-2018 RoLex
 # Thanks to Frog
 
@@ -87,11 +87,13 @@
 # 1.2.3.4 - Added "ver" command to automatically update script and loaded translation file
 # 1.2.3.5 - Added "asn_nofeed" configuration for space separated AS numbers to skip notifying
 # -------
+# 1.2.4.0 - Added block chat mode with delayed chat messages to public proxy detection
+# -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.3.5", # todo: dont forget to update
+	"version": "1.2.4.0", # todo: dont forget to update
 	"verfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b6c6973742e766572",
 	"pyfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b6c6973742e7079",
 	"langfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b5f25732e6c616e67",
@@ -135,7 +137,7 @@ bl_conf = {
 	"prox_nofail": [0, "int", 0, 1, "Disable proxy lookup failure notifications"],
 	"prox_getasn": [0, "int", 0, 1, "Enable GeoIP ASN information on proxy detection"],
 	"prox_debug": [0, "int", 0, 3, "Level of proxy lookup debug information"],
-	"action_proxy": [1, "int", 0, 1, "Block action on public proxy detections"],
+	"action_proxy": [1, "int", 0, 2, "Block action on public proxy detections"], # 0 - notify only, 1 - drop user, 2 - block chat
 	"action_mylist": [1, "int", 0, 1, "Block action on my list item detections"],
 	"action_asnlist": [1, "int", 0, 1, "Block action on ASN list item detections"],
 	"except_proxy": [1, "int", 0, 1, "Exception usage on public proxy detections"],
@@ -154,7 +156,8 @@ bl_stat = {
 	"lookup": 0l,
 	"quote": time.time (),
 	"update": time.time (),
-	"proxy": time.time ()
+	"proxy": time.time (),
+	"ledokol": False
 }
 
 bl_lang = {}
@@ -254,21 +257,21 @@ def bl_main ():
 
 	out = (bl_getlang ("Blacklist %s startup") + ":\r\n\r\n") % bl_defs ["version"]
 	out += bl_reload ()
-	sql, rows = vh.SQL ("select * from `py_bl_myli`", 1000) # todo: dont forget about limit
+	sql, rows = vh.SQL ("select * from `py_bl_myli`", 10000) # todo: dont forget about limit
 
 	if sql and rows:
 		for item in rows:
 			bl_myli.append ([int (item [0]), int (item [1]), bl_getlang ("My item") if item [2] == "NULL" else item [2], int (item [3])])
 
 	out += " [*] %s: %s\r\n" % (bl_getlang ("My list"), str (len (rows)))
-	sql, rows = vh.SQL ("select * from `py_bl_asn`", 1000) # todo: dont forget about limit
+	sql, rows = vh.SQL ("select * from `py_bl_asn`", 10000) # todo: dont forget about limit
 
 	if sql and rows:
 		for item in rows:
 			bl_asn.append ([item [0], int (item [1])])
 
 	out += " [*] %s: %s\r\n" % (bl_getlang ("ASN list"), str (len (rows)))
-	sql, rows = vh.SQL ("select * from `py_bl_exli`", 1000) # todo: dont forget about limit
+	sql, rows = vh.SQL ("select * from `py_bl_exli`", 10000) # todo: dont forget about limit
 
 	if sql and rows:
 		for item in rows:
@@ -882,6 +885,52 @@ def bl_notify (data):
 		except:
 			pass
 
+def bl_delaychat (list, block = False):
+	for data in list:
+		if block: # send block message
+			bl_reply (data, bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address."))
+
+		else: # send chat messages via ledokol
+			try:
+				if data [:7] == "$MCTo: ": # mcto
+					if bl_stat ["ledokol"]:
+						vh.ScriptCommand ("delayed_mcto_to_user", data)
+					else: # send by self
+						pars = re.findall ("^\$MCTo\: ([^ ]+) From\: ([^ ]+) \$(<[^ ]+> .*)$", data)
+
+						if pars and pars [0][0] and pars [0][1] and pars [0][2] and vh.GetUserClass (pars [0][0]) >= 0 and vh.GetUserClass (pars [0][1]) >= 0:
+							if bl_hubver (1, 0, 2, 16): # todo: check mcto support flag when supported by plugin, for now send regular chat message
+								vh.SendDataToUser (pars [0][2] + "|", pars [0][0], bl_hubconf ("delayed_chat", 0)) # chat is not delayed by default
+							else:
+								vh.SendDataToUser (pars [0][2] + "|", pars [0][0])
+
+				elif data [:5] == "$To: ": # pm
+					if bl_stat ["ledokol"]:
+						vh.ScriptCommand ("delayed_pm_to_user", data)
+					else: # send by self
+						pars = re.findall ("^\$To\: ([^ ]+) From\: ([^ ]+) \$<[^ ]+> .*$", data)
+
+						if pars and pars [0][0] and pars [0][1] and vh.GetUserClass (pars [0][0]) >= 0 and vh.GetUserClass (pars [0][1]) >= 0:
+							if bl_hubver (1, 0, 2, 16):
+								vh.SendDataToUser (data + "|", pars [0][0], bl_hubconf ("delayed_chat", 0)) # chat is not delayed by default
+							else:
+								vh.SendDataToUser (data + "|", pars [0][0])
+
+				elif data [:1] == "<": # mc
+					if bl_stat ["ledokol"]:
+						vh.ScriptCommand ("delayed_chat_to_all", data)
+					else: # send by self
+						pars = re.findall ("^<([^ ]+)> .*$", data)
+
+						if pars and pars [0] and vh.GetUserClass (pars [0]) >= 0:
+							if bl_hubver (1, 0, 2, 16):
+								vh.SendDataToAll (data + "|", 0, 10, bl_hubconf ("delayed_chat", 0)) # chat is not delayed by default
+							else:
+								vh.SendDataToAll (data + "|", 0, 10)
+
+			except:
+				pass
+
 def bl_addbot (nick):
 	global bl_defs, bl_conf
 	vh.AddRobot (nick, bl_conf ["class_feed"][0], bl_defs ["botdesc"].decode ("hex") % bl_defs ["version"], chr (1), "", "0")
@@ -889,11 +938,123 @@ def bl_addbot (nick):
 def bl_delbot (nick):
 	vh.DelRobot (nick)
 
+def bl_chatdata (nick, data, rem = False):
+	global bl_defs, bl_conf, bl_prox, bl_stat
+
+	if bl_conf ["prox_lookup"][0] < 2 or vh.GetUserClass (nick) >= bl_conf ["class_skip"][0] or (bl_conf ["nick_skip"][0] and str ().join ([" ", nick, " "]) in str ().join ([" ", bl_conf ["nick_skip"][0], " "])):
+		return 1
+
+	addr = vh.GetUserIP (nick)
+
+	if not addr:
+		return 1
+
+	code = vh.GetUserCC (nick)
+
+	if not code:
+		code = "??"
+
+	if code == "L1" or code == "P1":
+		return 1
+
+	intaddr = bl_addrtoint (addr)
+	addrpos = intaddr >> 24
+	size = 0
+
+	for id, item in enumerate (bl_prox [addrpos]):
+		if addr == item [0]:
+			if item [3] < 2:
+				if not nick in item [1]:
+					bl_prox [addrpos][id][1].append (nick)
+
+			elif item [3] == 2: # drop user mode
+				res = bl_excheck (addr, intaddr, code, None, None, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick, True)
+
+				if not res and rem: # remove last main chat history message in ledokol, dont ask why
+					try:
+						vh.ScriptCommand ("remove_history_line", data)
+					except:
+						pass
+
+				return res
+
+			elif item [3] == 3: # block chat mode
+				bl_reply (nick, bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address."))
+
+				if rem: # remove last main chat history message in ledokol, dont ask why
+					try:
+						vh.ScriptCommand ("remove_history_line", data)
+					except:
+						pass
+
+				return 0
+
+			#elif item [3] == 4: # exception
+				#pass
+
+			return 1 # nothing to do
+
+		if not item [3]:
+			size += 1
+
+	if size < bl_conf ["prox_queue"][0]:
+		now = time.time ()
+
+		if bl_conf ["prox_quote"][0] > 0: # check daily quote
+			if bl_stat ["lookup"] == 0: # first time
+				bl_stat ["quote"] = now
+
+			elif bl_stat ["lookup"] >= bl_conf ["prox_quote"][0]:
+				if now - bl_stat ["quote"] >= bl_defs ["quotesec"]:
+					if bl_conf ["prox_debug"][0] > 2:
+						bl_notify (bl_getlang ("Resetting proxy lookup quote limit: %s") % str (bl_conf ["prox_quote"][0]))
+
+					bl_stat ["lookup"], bl_stat ["quote"] = 0, now
+
+				else:
+					if bl_conf ["prox_debug"][0] > 1:
+						bl_notify (bl_getlang ("Proxy lookup quote limit reached on chat user from IP %s.%s: %s") % (addr, code, nick))
+
+					return 1
+
+		bl_stat ["lookup"] = bl_stat ["lookup"] + 1
+		bl_prox [addrpos].append ([addr, [nick], [data] if bl_conf ["action_proxy"][0] == 2 else [], 0, now, True]) # add message to queue if enabled
+
+		if bl_conf ["prox_debug"][0] > 1:
+			bl_notify (bl_getlang ("Checking chat user from IP %s.%s: %s") % (addr, code, nick))
+
+		if bl_conf ["action_proxy"][0] == 2: # notify user
+			bl_reply (nick, bl_getlang ("Your message will be delayed for proxy lookup of your IP address."))
+			bl_stat ["ledokol"] = False # check ledokol status
+
+			try:
+				vh.ScriptCommand ("are_you_there", "ledokol")
+			except:
+				pass
+
+			if rem: # remove last main chat history message in ledokol, dont ask why
+				try:
+					vh.ScriptCommand ("remove_history_line", data)
+				except:
+					pass
+
+			return 0
+
+	return 1
+
 def UnLoad ():
 	global bl_conf
 
 	if bl_conf ["nick_bot"][0]:
 		bl_delbot (bl_conf ["nick_bot"][0])
+
+	return 1
+
+def OnScriptCommand (name, data, plug, file):
+	global bl_stat
+
+	if name == "yes_im_here" and data == "ledokol" and plug == "lua" and file [-11:] == "ledokol.lua": # todo: this is valid only during last message, not sure what happens if we get another one inbetween
+		bl_stat ["ledokol"] = True
 
 	return 1
 
@@ -931,6 +1092,7 @@ def OnNewConn (addr):
 
 					bl_stat ["block"] += 1
 					return 0
+
 	except: # not supported
 		pass
 
@@ -940,7 +1102,7 @@ def OnNewConn (addr):
 	if code != "L1" and code != "P1" and bl_conf ["prox_lookup"][0] and time.time () - vh.starttime >= bl_conf ["prox_start"][0] * 60: # check proxy
 		for id, item in enumerate (bl_prox [addrpos]):
 			if addr == item [0]:
-				if item [2] == 2 and not bl_excheck (addr, intaddr, code, asnum, urlasn, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0]):
+				if item [3] == 2 and not bl_excheck (addr, intaddr, code, asnum, urlasn, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0]): # drop user mode
 					return 0
 
 				break # dont return
@@ -1038,29 +1200,37 @@ def OnUserLogin (nick):
 
 	for id, item in enumerate (bl_prox [addrpos]):
 		if addr == item [0]:
-			if item [2] < 2:
+			if item [3] < 2:
 				if not nick in item [1]:
 					bl_prox [addrpos][id][1].append (nick)
-			#elif item [2] == 2: # checked on connect
+
+			#elif item [3] == 2: # drop user mode, checked on connect
 				#return bl_excheck (addr, intaddr, code, None, None, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick)
-			#elif item [2] == 3: # exception
+
+			elif item [3] == 3: # block chat mode
+				if not bl_excheck (addr, intaddr, code, None, None, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick):
+					bl_reply (nick, bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address."))
+
+			#elif item [3] == 4: # exception
 				#pass
 
 			return 1 # nothing to do
 
-		if not item [2]:
+		if not item [3]:
 			size += 1
 
 	if bl_conf ["prox_lookup"][0] == 1 and size < bl_conf ["prox_queue"][0]:
 		if bl_conf ["prox_quote"][0] > 0: # check daily quote
 			if bl_stat ["lookup"] == 0: # first time
 				bl_stat ["quote"] = now
+
 			elif bl_stat ["lookup"] >= bl_conf ["prox_quote"][0]:
 				if now - bl_stat ["quote"] >= bl_defs ["quotesec"]:
 					if bl_conf ["prox_debug"][0] > 2:
 						bl_notify (bl_getlang ("Resetting proxy lookup quote limit: %s") % str (bl_conf ["prox_quote"][0]))
 
 					bl_stat ["lookup"], bl_stat ["quote"] = 0, now
+
 				else:
 					if bl_conf ["prox_debug"][0] > 1:
 						bl_notify (bl_getlang ("Proxy lookup quote limit reached on logged in user from IP %s.%s: %s") % (addr, code, nick))
@@ -1068,7 +1238,7 @@ def OnUserLogin (nick):
 					return 1
 
 		bl_stat ["lookup"] = bl_stat ["lookup"] + 1
-		bl_prox [addrpos].append ([addr, [nick], 0, now, False])
+		bl_prox [addrpos].append ([addr, [nick], [], 0, now, False])
 
 		if bl_conf ["prox_debug"][0] > 1:
 			bl_notify (bl_getlang ("Checking logged in user from IP %s.%s: %s") % (addr, code, nick))
@@ -1076,74 +1246,13 @@ def OnUserLogin (nick):
 	return 1
 
 def OnParsedMsgChat (nick, data):
-	global bl_defs, bl_conf, bl_prox, bl_stat
-
-	if bl_conf ["prox_lookup"][0] < 2 or vh.GetUserClass (nick) >= bl_conf ["class_skip"][0] or (bl_conf ["nick_skip"][0] and str ().join ([" ", nick, " "]) in str ().join ([" ", bl_conf ["nick_skip"][0], " "])):
-		return 1
-
-	addr = vh.GetUserIP (nick)
-
-	if not addr:
-		return 1
-
-	code = vh.GetUserCC (nick)
-
-	if not code:
-		code = "??"
-
-	if code == "L1" or code == "P1":
-		return 1
-
-	intaddr = bl_addrtoint (addr)
-	addrpos = intaddr >> 24
-	size = 0
-
-	for id, item in enumerate (bl_prox [addrpos]):
-		if addr == item [0]:
-			if item [2] < 2:
-				if not nick in item [1]:
-					bl_prox [addrpos][id][1].append (nick)
-			elif item [2] == 2:
-				return bl_excheck (addr, intaddr, code, None, None, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick, True)
-			#elif item [2] == 3: # exception
-				#pass
-
-			return 1 # nothing to do
-
-		if not item [2]:
-			size += 1
-
-	if size < bl_conf ["prox_queue"][0]:
-		now = time.time ()
-
-		if bl_conf ["prox_quote"][0] > 0: # check daily quote
-			if bl_stat ["lookup"] == 0: # first time
-				bl_stat ["quote"] = now
-			elif bl_stat ["lookup"] >= bl_conf ["prox_quote"][0]:
-				if now - bl_stat ["quote"] >= bl_defs ["quotesec"]:
-					if bl_conf ["prox_debug"][0] > 2:
-						bl_notify (bl_getlang ("Resetting proxy lookup quote limit: %s") % str (bl_conf ["prox_quote"][0]))
-
-					bl_stat ["lookup"], bl_stat ["quote"] = 0, now
-				else:
-					if bl_conf ["prox_debug"][0] > 1:
-						bl_notify (bl_getlang ("Proxy lookup quote limit reached on chat user from IP %s.%s: %s") % (addr, code, nick))
-
-					return 1
-
-		bl_stat ["lookup"] = bl_stat ["lookup"] + 1
-		bl_prox [addrpos].append ([addr, [nick], 0, now, True])
-
-		if bl_conf ["prox_debug"][0] > 1:
-			bl_notify (bl_getlang ("Checking chat user from IP %s.%s: %s") % (addr, code, nick))
-
-	return 1
+	return bl_chatdata (nick, "<" + nick + "> " + data, True)
 
 def OnParsedMsgPM (nick, data, user):
-	return OnParsedMsgChat (nick, data)
+	return bl_chatdata (nick, "$To: " + user + " From: " + nick + " $<" + nick + "> " + data)
 
 def OnParsedMsgMCTo (nick, data, user):
-	return OnParsedMsgChat (nick, data)
+	return bl_chatdata (nick, "$MCTo: " + user + " From: " + nick + " $<" + nick + "> " + data)
 
 def OnUserCommand (nick, data):
 	if data [1:3] == "me" and (data [3:4] == "" or data [3:4] == " "):
@@ -1185,7 +1294,7 @@ def OnOperatorCommand (user, data):
 				acurl += len (bl_prox [pos])
 
 				for item in bl_prox [pos]:
-					if item [2] < 3:
+					if item [3] < 3:
 						wcurl += 1
 
 			out = bl_getlang ("Blacklist statistics") + ":\r\n"
@@ -1215,9 +1324,9 @@ def OnOperatorCommand (user, data):
 
 			for pos in range (len (bl_prox)):
 				for item in bl_prox [pos]:
-					if item [2] < 3:
+					if item [3] < 3:
 						size += 1
-						out += (" [*] " + bl_getlang ("IP: %s.%s") + " | " + bl_getlang ("Status: %s") + " | " + bl_getlang ("Time: %s") + " | " + bl_getlang ("Chat: %s") + " | " + bl_getlang ("Users: %s") + "\r\n") % (item [0], vh.GetIPCC (item [0]) or "??", (bl_getlang ("Queued") if not item [2] else (bl_getlang ("Waiting") if item [2] == 1 else bl_getlang ("Done"))), time.strftime ("%H:%M:%S", time.localtime (item [3])), bl_getlang ("Yes") if item [4] else bl_getlang ("No"), (bl_getlang ("None") if item [2] == 2 else ", ".join (item [1])))
+						out += (" [*] " + bl_getlang ("IP: %s.%s") + " | " + bl_getlang ("Status: %s") + " | " + bl_getlang ("Time: %s") + " | " + bl_getlang ("Chat: %s") + " | " + bl_getlang ("Users: %s") + "\r\n") % (item [0], vh.GetIPCC (item [0]) or "??", (bl_getlang ("Queued") if not item [3] else (bl_getlang ("Waiting") if item [3] == 1 else bl_getlang ("Done"))), time.strftime ("%H:%M:%S", time.localtime (item [4])), bl_getlang ("Yes") if item [5] else bl_getlang ("No"), (bl_getlang ("None") if item [3] == 2 else ", ".join (item [1])))
 
 			if size:
 				out = bl_getlang ("Waiting proxy lookups") + ":\r\n\r\n" + out
@@ -2108,8 +2217,10 @@ def OnOperatorCommand (user, data):
 						intaddr = bl_addrtoint (prox [0])
 
 						if intaddr >= item [0] and intaddr <= item [1]:
-							bl_item [intaddr >> 24].append ([intaddr, intaddr, bl_getlang ("Public proxy"), bl_conf ["action_proxy"][0], bl_conf ["except_proxy"][0]]) # todo: also add to mysql table when we have one
-							bl_prox [pos].pop (pid)
+							if prox [3] == 4:
+								bl_item [intaddr >> 24].append ([intaddr, intaddr, bl_getlang ("Public proxy"), bl_conf ["action_proxy"][0], bl_conf ["except_proxy"][0]]) # todo: also add to mysql table when we have one
+								bl_prox [pos].pop (pid)
+
 							stop = True
 							break
 
@@ -2341,17 +2452,20 @@ def OnTimer (msec):
 
 		for pos in range (len (bl_prox)):
 			for id, item in enumerate (bl_prox [pos]):
-				if not item [2]:
+				if not item [3]:
 					if start < bl_conf ["prox_maxreq"][0]:
 						start += 1
 
 						try:
 							os.system (bl_defs ["curlreq"].decode ("hex") % (str (1), str (1), str (bl_conf ["time_down"][0]), str (bl_conf ["time_down"][0] * 2), bl_useragent (True), "", os.path.join (bl_defs ["datadir"], item [0]), (bl_defs ["ipintel"].decode ("hex") % (bl_conf ["prox_email"][0], item [0])))) # bl_defs ["referer"].decode ("hex")
-							bl_prox [pos][id][2], bl_prox [pos][id][3] = 1, now
+							bl_prox [pos][id][3], bl_prox [pos][id][4] = 1, now
+
 						except:
+							bl_delaychat (item [2]) # delayed messages
 							bl_notify (bl_getlang ("Failed proxy detection for %s.%s: %s") % (item [0], vh.GetIPCC (item [0]) or "??", bl_getlang ("Failed to execute command")))
 							dels.insert (0, [pos, id])
-				elif item [2] == 1:
+
+				elif item [3] == 1:
 					name = os.path.join (bl_defs ["datadir"], item [0])
 					isfile = os.path.isfile (name)
 
@@ -2399,58 +2513,79 @@ def OnTimer (msec):
 										intaddr = bl_addrtoint (item [0])
 										keep = True
 
-										if not bl_conf ["action_proxy"][0]:
+										if bl_conf ["action_proxy"][0] == 0: # notify only mode
 											if bl_waitfeed (item [0]):
-												if item [4]:
+												if item [5]:
 													bl_notify (bl_getlang ("Notifying blacklisted chat from %s with IP %s.%s: %s") % (item [1][0] if len (item [1]) == 1 else ", ".join (item [1]), item [0], code, bl_getlang ("Public proxy")))
 												else:
 													bl_notify (bl_getlang ("Notifying blacklisted login from %s with IP %s.%s: %s") % (item [1][0] if len (item [1]) == 1 else ", ".join (item [1]), item [0], code, bl_getlang ("Public proxy")))
 
 											# todo: bl_extry if ever required
 											bl_stat ["notify"] += 1
-											bl_prox [pos][id][2] = 3
-										elif bl_excheck (item [0], intaddr, code, None, None, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], item [1][0] if len (item [1]) == 1 else ", ".join (item [1]), item [4]):
+											bl_prox [pos][id][3] = 4
+
+										elif bl_excheck (item [0], intaddr, code, None, None, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], item [1][0] if len (item [1]) == 1 else ", ".join (item [1]), item [5]): # exception
+											bl_delaychat (item [2]) # delayed messages
 											bl_stat ["except"] += len (item [1])
-											bl_prox [pos][id][2] = 3
-										else:
+											bl_prox [pos][id][3] = 4
+
+										elif bl_conf ["action_proxy"][0] == 1: # drop user mode
 											for nick in item [1]:
 												vh.CloseConnection (nick)
 
 											bl_stat ["block"] += len (item [1])
-											bl_prox [pos][id][2] = 2
+											bl_prox [pos][id][3] = 2
 											bl_item [intaddr >> 24].append ([intaddr, intaddr, bl_getlang ("Public proxy"), bl_conf ["action_proxy"][0], bl_conf ["except_proxy"][0]]) # todo: also add to mysql table when we have one
+
+										elif bl_conf ["action_proxy"][0] == 2: # block chat mode
+											bl_delaychat (item [1], True) # delayed messages
+											bl_stat ["block"] += len (item [2])
+											bl_prox [pos][id][3] = 3
+
 									else:
 										if str (res [1]).isdigit ():
 											keep = True
-											bl_prox [pos][id][2] = 3
+											bl_prox [pos][id][3] = 4
 
 											if (bl_conf ["prox_debug"][0] and int (res [1])) or bl_conf ["prox_debug"][0] > 1:
 												bl_notify (bl_getlang ("Not enough matches for %s.%s: %s of %s") % (item [0], code, str (res [1]), str (bl_conf ["prox_match"][0])))
+
 										elif not bl_conf ["prox_nofail"][0]:
 											bl_notify (bl_getlang ("Failed proxy detection for %s.%s: %s") % (item [0], code, res [1]))
+
+										bl_delaychat (item [2]) # delayed messages
 								else:
 									bl_notify (bl_getlang ("Failed proxy detection for %s.%s: %s") % (item [0], code, bl_getlang ("Failed to read data")))
+									bl_delaychat (item [2]) # delayed messages
+
 							else:
 								bl_notify (bl_getlang ("Failed proxy detection for %s.%s: %s") % (item [0], code, bl_getlang ("Failed to open file")))
+								bl_delaychat (item [2]) # delayed messages
 
 							if keep:
 								del bl_prox [pos][id][1][:]
-								bl_prox [pos][id][3] = now
+								del bl_prox [pos][id][2][:]
+								bl_prox [pos][id][4] = now
 							else:
 								dels.insert (0, [pos, id])
 
 							bl_remfile (name)
 							continue
 
-					if now - item [3] >= (bl_conf ["time_down"][0] * 2) + (bl_conf ["prox_timer"][0] * 2):
+					if now - item [4] >= (bl_conf ["time_down"][0] * 2) + (bl_conf ["prox_timer"][0] * 2):
 						dels.insert (0, [pos, id])
 
 						if isfile:
 							bl_remfile (name)
-				elif item [2] == 2:
-					if now - item [3] >= bl_defs ["delwait"]:
+
+				elif item [3] == 2:
+					if now - item [4] >= bl_defs ["delwait"]:
 						dels.insert (0, [pos, id])
-				#elif item [2] == 3: # exception
+
+				#elif item [3] == 3: # block chat mode
+					#pass
+
+				#elif item [3] == 4: # exception
 					#pass
 
 		for item in dels:
