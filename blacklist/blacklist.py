@@ -888,45 +888,58 @@ def bl_notify (data):
 def bl_delaychat (list, block = False):
 	for data in list:
 		if block: # send block message
-			bl_reply (data, bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address."))
+			if data [:7] == "$MCTo: ": # mcto
+				pars = re.findall ("^\$MCTo\: [^ ]+ From\: ([^ ]+) \$<[^ ]+> .*$", data)
+
+				if pars and pars [0]:
+					bl_reply (pars [0], bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address."))
+
+			elif data [:5] == "$To: ": # pm
+				pars = re.findall ("^\$To\: ([^ ]+) From\: ([^ ]+) \$<[^ ]+> .*$", data)
+
+				if pars and pars [0][0] and pars [0][1]:
+					vh.SendDataToUser ("$To: %s From: %s $<%s> %s|" % (pars [0][1], pars [0][0], vh.botname, bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address.")), pars [0][1])
+
+			else: # mc
+				pars = re.findall ("^<([^ ]+)> .*$", data)
+
+				if pars and pars [0]:
+					bl_reply (pars [0], bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address."))
 
 		else: # send chat messages via ledokol
 			try:
 				if data [:7] == "$MCTo: ": # mcto
 					if bl_stat ["ledokol"]:
 						vh.ScriptCommand ("delayed_mcto_to_user", data)
+
 					else: # send by self
 						pars = re.findall ("^\$MCTo\: ([^ ]+) From\: ([^ ]+) \$(<[^ ]+> .*)$", data)
 
 						if pars and pars [0][0] and pars [0][1] and pars [0][2] and vh.GetUserClass (pars [0][0]) >= 0 and vh.GetUserClass (pars [0][1]) >= 0:
-							if bl_hubver (1, 0, 2, 16): # todo: check mcto support flag when supported by plugin, for now send regular chat message
-								vh.SendDataToUser (pars [0][2] + "|", pars [0][0], bl_hubconf ("delayed_chat", 0)) # chat is not delayed by default
-							else:
-								vh.SendDataToUser (pars [0][2] + "|", pars [0][0])
+							vh.SendDataToUser ("%s|" % pars [0][2], pars [0][0]) # todo: check mcto support flag when supported by plugin, for now send regular chat message
 
 				elif data [:5] == "$To: ": # pm
 					if bl_stat ["ledokol"]:
 						vh.ScriptCommand ("delayed_pm_to_user", data)
+
 					else: # send by self
 						pars = re.findall ("^\$To\: ([^ ]+) From\: ([^ ]+) \$<[^ ]+> .*$", data)
 
 						if pars and pars [0][0] and pars [0][1] and vh.GetUserClass (pars [0][0]) >= 0 and vh.GetUserClass (pars [0][1]) >= 0:
-							if bl_hubver (1, 0, 2, 16):
-								vh.SendDataToUser (data + "|", pars [0][0], bl_hubconf ("delayed_chat", 0)) # chat is not delayed by default
-							else:
-								vh.SendDataToUser (data + "|", pars [0][0])
+							vh.SendDataToUser ("%s|" % data, pars [0][0])
 
 				elif data [:1] == "<": # mc
 					if bl_stat ["ledokol"]:
 						vh.ScriptCommand ("delayed_chat_to_all", data)
+
 					else: # send by self
 						pars = re.findall ("^<([^ ]+)> .*$", data)
 
 						if pars and pars [0] and vh.GetUserClass (pars [0]) >= 0:
 							if bl_hubver (1, 0, 2, 16):
-								vh.SendDataToAll (data + "|", 0, 10, bl_hubconf ("delayed_chat", 0)) # chat is not delayed by default
+								vh.SendDataToAll ("%s|" % data, 0, 10, bl_hubconf ("delayed_chat", 0)) # chat is not delayed by default
 							else:
-								vh.SendDataToAll (data + "|", 0, 10)
+								vh.SendDataToAll ("%s|" % data, 0, 10)
 
 			except:
 				pass
@@ -979,7 +992,14 @@ def bl_chatdata (nick, data, rem = False):
 				return res
 
 			elif item [3] == 3: # block chat mode
-				bl_reply (nick, bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address."))
+				if not rem and data [:5] == "$To: ": # pm
+					pars = re.findall ("^\$To\: ([^ ]+) From\: [^ ]+ \$<[^ ]+> .*$", data)
+
+					if pars and pars [0]:
+						vh.SendDataToUser ("$To: %s From: %s $<%s> %s|" % (nick, pars [0], vh.botname, bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address.")), nick)
+
+				else: # mc
+					bl_reply (nick, bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address."))
 
 				if rem: # remove last main chat history message in ledokol, dont ask why
 					try:
@@ -1024,7 +1044,15 @@ def bl_chatdata (nick, data, rem = False):
 			bl_notify (bl_getlang ("Checking chat user from IP %s.%s: %s") % (addr, code, nick))
 
 		if bl_conf ["action_proxy"][0] == 2: # notify user
-			bl_reply (nick, bl_getlang ("Your message will be delayed for proxy lookup of your IP address."))
+			if not rem and data [:5] == "$To: ": # pm
+				pars = re.findall ("^\$To\: ([^ ]+) From\: [^ ]+ \$<[^ ]+> .*$", data)
+
+				if pars and pars [0]:
+					vh.SendDataToUser ("$To: %s From: %s $<%s> %s|" % (nick, pars [0], vh.botname, bl_getlang ("Your message will be delayed for proxy lookup of your IP address.")), nick)
+
+			else: # mc
+				bl_reply (nick, bl_getlang ("Your message will be delayed for proxy lookup of your IP address."))
+
 			bl_stat ["ledokol"] = False # check ledokol status
 
 			try:
@@ -1246,13 +1274,13 @@ def OnUserLogin (nick):
 	return 1
 
 def OnParsedMsgChat (nick, data):
-	return bl_chatdata (nick, "<" + nick + "> " + data, True)
+	return bl_chatdata (nick, "<%s> %s" % (nick, data), True)
 
 def OnParsedMsgPM (nick, data, user):
-	return bl_chatdata (nick, "$To: " + user + " From: " + nick + " $<" + nick + "> " + data)
+	return bl_chatdata (nick, "$To: %s From: %s $<%s> %s" % (user, nick, nick, data))
 
 def OnParsedMsgMCTo (nick, data, user):
-	return bl_chatdata (nick, "$MCTo: " + user + " From: " + nick + " $<" + nick + "> " + data)
+	return bl_chatdata (nick, "$MCTo: %s From: %s $<%s> %s" % (user, nick, nick, data))
 
 def OnUserCommand (nick, data):
 	if data [1:3] == "me" and (data [3:4] == "" or data [3:4] == " "):
@@ -2538,7 +2566,7 @@ def OnTimer (msec):
 											bl_item [intaddr >> 24].append ([intaddr, intaddr, bl_getlang ("Public proxy"), bl_conf ["action_proxy"][0], bl_conf ["except_proxy"][0]]) # todo: also add to mysql table when we have one
 
 										elif bl_conf ["action_proxy"][0] == 2: # block chat mode
-											bl_delaychat (item [1], True) # delayed messages
+											bl_delaychat (item [2], True) # delayed messages
 											bl_stat ["block"] += len (item [2])
 											bl_prox [pos][id][3] = 3
 
