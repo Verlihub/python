@@ -1236,7 +1236,7 @@ def OnUserLogin (nick):
 				#return bl_excheck (addr, intaddr, code, None, None, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick)
 
 			elif item [3] == 3: # block chat mode
-				if not bl_excheck (addr, intaddr, code, None, None, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick):
+				if not bl_excheck (addr, intaddr, code, None, None, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick, True):
 					bl_reply (nick, bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address."))
 
 			#elif item [3] == 4: # exception
