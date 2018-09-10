@@ -248,3 +248,6 @@ Failed to move file|
 Space separated AS numbers to skip notifying|
 You're not allowed to chat due to public proxy detection of your IP address.|
 Your message will be delayed for proxy lookup of your IP address.|
+Blocking private main chat message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|
+Blocking private message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|
+Blocking main chat message from %s with IP %s.%s detected as public proxy: %s|

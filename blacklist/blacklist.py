@@ -889,22 +889,25 @@ def bl_delaychat (list, block = False):
 	for data in list:
 		if block: # send block message
 			if data [:7] == "$MCTo: ": # mcto
-				pars = re.findall ("^\$MCTo\: [^ ]+ From\: ([^ ]+) \$<[^ ]+> .*$", data)
+				pars = re.findall ("^\$MCTo\: ([^ ]+) From\: ([^ ]+) \$<[^ ]+> (.*)$", data)
 
-				if pars and pars [0]:
-					bl_reply (pars [0], bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address."))
+				if pars and pars [0][0] and pars [0][1] and pars [0][2]:
+					bl_notify (bl_getlang ("Blocking private main chat message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s") % (pars [0][1], vh.GetUserIP (pars [0][1]), vh.GetUserCC (pars [0][1]), pars [0][0], vh.GetUserIP (pars [0][0]), vh.GetUserCC (pars [0][0]), pars [0][2]))
+					bl_reply (pars [0][1], bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address."))
 
 			elif data [:5] == "$To: ": # pm
-				pars = re.findall ("^\$To\: ([^ ]+) From\: ([^ ]+) \$<[^ ]+> .*$", data)
+				pars = re.findall ("^\$To\: ([^ ]+) From\: ([^ ]+) \$<[^ ]+> (.*)$", data)
 
-				if pars and pars [0][0] and pars [0][1]:
+				if pars and pars [0][0] and pars [0][1] and pars [0][2]:
+					bl_notify (bl_getlang ("Blocking private message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s") % (pars [0][1], vh.GetUserIP (pars [0][1]), vh.GetUserCC (pars [0][1]), pars [0][0], vh.GetUserIP (pars [0][0]), vh.GetUserCC (pars [0][0]), pars [0][2]))
 					vh.SendDataToUser ("$To: %s From: %s $<%s> %s|" % (pars [0][1], pars [0][0], vh.botname, bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address.")), pars [0][1])
 
 			else: # mc
-				pars = re.findall ("^<([^ ]+)> .*$", data)
+				pars = re.findall ("^<([^ ]+)> (.*)$", data)
 
-				if pars and pars [0]:
-					bl_reply (pars [0], bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address."))
+				if pars and pars [0][0] and pars [0][1]:
+					bl_notify (bl_getlang ("Blocking main chat message from %s with IP %s.%s detected as public proxy: %s") % (pars [0][0], vh.GetUserIP (pars [0][0]), vh.GetUserCC (pars [0][0]), pars [0][1]))
+					bl_reply (pars [0][0], bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address."))
 
 		else: # send chat messages via ledokol
 			try:
@@ -992,14 +995,26 @@ def bl_chatdata (nick, data, rem = False):
 				return res
 
 			elif item [3] == 3: # block chat mode
-				if not rem and data [:5] == "$To: ": # pm
-					pars = re.findall ("^\$To\: ([^ ]+) From\: [^ ]+ \$<[^ ]+> .*$", data)
+				if not rem and data [:7] == "$MCTo: ": # mcto
+					pars = re.findall ("^\$MCTo\: ([^ ]+) From\: [^ ]+ \$<[^ ]+> (.*)$", data)
 
-					if pars and pars [0]:
-						vh.SendDataToUser ("$To: %s From: %s $<%s> %s|" % (nick, pars [0], vh.botname, bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address.")), nick)
+					if pars and pars [0][0] and pars [0][1]:
+						bl_notify (bl_getlang ("Blocking private main chat message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s") % (nick, vh.GetUserIP (nick), vh.GetUserCC (nick), pars [0][0], vh.GetUserIP (pars [0][0]), vh.GetUserCC (pars [0][0]), pars [0][1]))
+						bl_reply (nick, bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address."))
+
+				elif not rem and data [:5] == "$To: ": # pm
+					pars = re.findall ("^\$To\: ([^ ]+) From\: [^ ]+ \$<[^ ]+> (.*)$", data)
+
+					if pars and pars [0][0] and pars [0][1]:
+						bl_notify (bl_getlang ("Blocking private message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s") % (nick, vh.GetUserIP (nick), vh.GetUserCC (nick), pars [0][0], vh.GetUserIP (pars [0][0]), vh.GetUserCC (pars [0][0]), pars [0][1]))
+						vh.SendDataToUser ("$To: %s From: %s $<%s> %s|" % (nick, pars [0][0], vh.botname, bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address.")), nick)
 
 				else: # mc
-					bl_reply (nick, bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address."))
+					pars = re.findall ("^<[^ ]+> (.*)$", data)
+
+					if pars and pars [0]:
+						bl_notify (bl_getlang ("Blocking main chat message from %s with IP %s.%s detected as public proxy: %s") % (nick, vh.GetUserIP (nick), vh.GetUserCC (nick), pars [0]))
+						bl_reply (nick, bl_getlang ("You're not allowed to chat due to public proxy detection of your IP address."))
 
 				if rem: # remove last main chat history message in ledokol, dont ask why
 					try:
