@@ -550,7 +550,7 @@ def bl_extry (addr, code, intaddr, loaddr, hiaddr):
 	if bl_conf ["extry_getasn"][0]:
 		bl_notify (bl_getlang ("ASN: %s") % bl_getasn (addr))
 
-def bl_excheck (addr, intaddr, code, asn, urlasn, name, exuse, nick = None, chat = False):
+def bl_excheck (addr, intaddr, code, asn, urlasn, name, exuse, nick = None, chat = False, skip = False):
 	global bl_conf, bl_stat, bl_exli
 
 	if exuse:
@@ -603,7 +603,8 @@ def bl_excheck (addr, intaddr, code, asn, urlasn, name, exuse, nick = None, chat
 	if bl_waitfeed (addr):
 		if nick:
 			if chat:
-				bl_notify (bl_getlang ("Blocking blacklisted chat from %s with IP %s.%s: %s") % (nick, addr, code, name))
+				if not skip:
+					bl_notify (bl_getlang ("Blocking blacklisted chat from %s with IP %s.%s: %s") % (nick, addr, code, name))
 			else:
 				bl_notify (bl_getlang ("Blocking blacklisted login from %s with IP %s.%s: %s") % (nick, addr, code, name))
 		else:
@@ -984,7 +985,7 @@ def bl_chatdata (nick, data, rem = False):
 					bl_prox [addrpos][id][1].append (nick)
 
 			elif item [3] == 2: # drop user mode
-				res = bl_excheck (addr, intaddr, code, None, None, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick, True)
+				res = bl_excheck (addr, intaddr, code, None, None, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick, True, True)
 
 				if not res and rem: # remove last main chat history message in ledokol, dont ask why
 					try:
