@@ -981,6 +981,13 @@ def bl_chatdata (nick, data, rem = False):
 	for id, item in enumerate (bl_prox [addrpos]):
 		if addr == item [0]:
 			if item [3] < 2:
+				# todo
+					# we have a bug here
+					# user is able to send messages after the first one while he is being checked
+					# a check usually takes a few seconds
+					# this function is now deprecated and will be removed in future due to availability in ledokol
+					# use ledokol instead
+
 				if not nick in item [1]:
 					bl_prox [addrpos][id][1].append (nick)
 
