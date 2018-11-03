@@ -1,6 +1,6 @@
 # Language: ru_RU
 # Charset: CP1251
-# Version: 1.2.3
+# Version: 1.2.4
 # Author: KCAHDEP
 # Email: admin@milenahub.ru
 
@@ -39,7 +39,7 @@ No results for IP: %s|Нет результатов по IP: %s
 Results for title: %s|Результаты по заголовку: %s
 No results for title: %s|Нет результатов по заголовку: %s
 Blacklist list is empty.|Список Blacklist пуст
-Blacklist list|Список Blacklist 
+Blacklist list|Список Blacklist
 ID: %s|ID: %s
 List: %s|Список: %s
 Type: %s|Тип: %s
@@ -88,7 +88,7 @@ Show exception list|Показать список исключений
 New exception item|Новый пункт исключений
 Delete an exception|Удалить исключение
 Show current configuration|Показать текущие настройки
-Set configuration item|Установить настройку
+Set configuration item|Установить пункт конфигурации
 Show waiting feed list|Показать список задержки оповещений
 value|значение
 item|пункт
@@ -100,11 +100,6 @@ list|список
 type|тип
 update|обновление
 None|Пусто
-Set translation string|Изменить строку перевода
-Show current translation|Показать текущий перевод
-Translation list|Список переводов
-Updated translation with ID: %s|Обновлен перевод с ID: %s
-Parameter count mismatch in translation with ID: %s|Несоответствие количества параметров в переводе с ID: %s
 File is not compressed with ZIP|Файл не сжат при помощи ZIP
 Force load of existing list|Принудительно загрузить список
 Item is disabled: %s|Пункт отключен: %s
@@ -118,16 +113,16 @@ Failed to open URL|Не удалось открыть ссылку
 Public proxy lookup|Запрос публичных прокси
 Not enough matches for %s.%s: %s of %s|Не достаточно совпадений для %s.%s: %s из %s
 Public proxy detected: %s.%s|Обнаружен публичный прокси: %s.%s
-Failed proxy detection for %s.%s: %s|Не удалось обнаружение прокси для %s.%s: %s
+Failed proxy detection for %s.%s: %s|Не удалось обнаружить прокси для %s.%s: %s
 Delete blacklisted item|Удалить блокированный пункт
 List out of item with range: %s - %s|В списке нет пунктов с диапазоном: %s - %s
 Data directory: %s|Папка для данных: %s
 Failed to create directory|Не удалось создать папку
 Failed to execute command|Не удалось выполнить команду
 Public proxy|Публичный прокси
-Show waiting proxy lookups|Показать очередь запросов прокси
-Waiting proxy lookup list is empty.|Очередь запросов прокси пуста.
-Waiting proxy lookups|Очередь запросов прокси
+Show waiting proxy lookups|Просмотр ожидающих прокси-запросов
+Waiting proxy lookup list is empty.|Список ожидающих прокси-поиска пуст
+Waiting proxy lookups|Ожидание прокси-запросов
 Time: %s|Время: %s
 Users: %s|Пользователей: %s
 Feature is disabled.|Функция отключена.
@@ -191,7 +186,7 @@ Set list exception usage|Установить использование исключений для списка
 Exception usage on public proxy detections|Использование исключений при обнаружении публичных прокси
 Exception usage on my list item detections|Использование исключений при обнаружении в моем списке
 Run exception lookup on notification actions|Выполнить поиска исключений для действия уведомления
-Exception list out of IP %s.%s: %s|Список исключений из IP %s.%s: %s
+Exception list out of IP %s.%s: %s|IP %s.%s вне списка исключений: %s
 Delete from waiting feed list|Удалить из списка задержки оповещения
 Waiting feed list has been cleared.|Список задержки оповещения был очищен.
 Bad command parameters: %s|Неверные параметры команды: %s
@@ -199,7 +194,7 @@ Waiting feed list item deleted: %s.%s|Пункт списка задержки оповещений удален: %
 Waiting feed list out of item: %s.%s|Из пункта списка задержки оповещений: %s.%s
 Error status: %s|Состояние ошибки: %s
 Unknown|Неизвестно
-Blocking blacklisted chat from %s with IP %s.%s: %s|Блокирован вход из черного списка от MC  %s с IP %s.%s: %s
+Blocking blacklisted chat from %s with IP %s.%s: %s|Блокировано сообщение в главный чат из черного списка от %s с IP %s.%s: %s
 Chat: %s|MC: %s
 Notifying blacklisted chat from %s with IP %s.%s: %s|Уведомление о входе из черного списка от MC %s с IP %s.%s: %s
 Blacklisted chat exception from %s with IP %s.%s: %s|Вход с исключением черного списка от MC %s с IP %s.%s: %s
@@ -236,3 +231,23 @@ Space separated AS numbers to except|Список AS номеров через пробел подлежащих д
 Blocked ASN: %s|Заблокированный ASN: %s
 Excepted ASN: %s|Исключенный ASN: %s
 Space separated nicks to skip proxy lookup|Список ников через пробел подлежащих исключению
+Translation: %s|Перевод: %s
+Update script to latest version|Обновить скрипт до последней версии
+Unable to download version file: %s|Неудалось загрузить файл версии: %s
+Invalid version number|Неверный номер версии
+You are already running latest version: %s|Вы уже используете последнюю версию: %s
+New version is available for download: %s|Новая версия доступна для скачивания: %s
+Unable to download script file: %s|Не удалось загрузить скрипт: %s
+Invalid file content|Неверное содержимое файла
+Unable to update script file: %s|Не удалось обновить скрипт: %s
+Failed to write temporary file|Не удалось записать временный файл
+Unable to download translation file: %s|Не удалось загрузить файл перевода: %s
+Unable to update translation file: %s|Не удалось обновить файл перевода: %s
+Finish update with following command: %s|Завершите обновление с помощью следующей команды: %s
+Failed to move file|Не удалось переместить файл
+Space separated AS numbers to skip notifying|Список AS номеров через пробел для пропуска оповещений
+You're not allowed to chat due to public proxy detection of your IP address.|У вас нет прав на использование чата поскольку ваш IP адрес был обнаружен как публичный прокси.
+Your message will be delayed for proxy lookup of your IP address.|Ваше сообщение будет задержано для проверки вашего IP адреса на признаки публичного прокси.
+Blocking private main chat message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|Блокировка личного сообщения в чат от %s с IP %s.%s обнаруженным как публичный прокси пользователю %s с IP %s.%s: %s
+Blocking private message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|Блокировка личного сообщения от %s с IP %s.%s обнаруженным как публичный прокси пользователю %s с IP %s.%s: %s
+Blocking main chat message from %s with IP %s.%s detected as public proxy: %s|Блокировка сообщения в чат от %s с IP %s.%s обнаруженным как публичный прокси: %s
