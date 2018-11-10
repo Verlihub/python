@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.4.0
+# Blacklist 1.2.4.1
 # © 2010-2018 RoLex
 # Thanks to Frog
 
@@ -88,12 +88,14 @@
 # 1.2.3.5 - Added "asn_nofeed" configuration for space separated AS numbers to skip notifying
 # -------
 # 1.2.4.0 - Added block chat mode with delayed chat messages to public proxy detection
+# 1.2.4.1 - Added Mozilla compatible user agent for HTTP requests
+# 1.2.4.1 - Fixed public proxy lookup message queue but it is recommended to use Ledokol instead for best compatibility
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.4.0", # todo: dont forget to update
+	"version": "1.2.4.1", # todo: dont forget to update
 	"verfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b6c6973742e766572",
 	"pyfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b6c6973742e7079",
 	"langfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b5f25732e6c616e67",
@@ -101,7 +103,7 @@ bl_defs = {
 	"curlreq": "6375726c202d47202d4c202d2d6d61782d726564697273202573202d2d7265747279202573202d2d636f6e6e6563742d74696d656f7574202573202d6d202573202d412022257322202d652022257322202d73202d6f202225732220222573222026",
 	"ipintel": "687474703a2f2f636865636b2e6765746970696e74656c2e6e65742f636865636b2e7068703f666f726d61743d6a736f6e26636f6e746163743d25732669703d2573",
 	"referer": "68747470733a2f2f6769746875622e636f6d2f7665726c696875622f707974686f6e2f",
-	"useragent": ["426c61636b6c6973742f2573", None],
+	"useragent": ["4d6f7a696c6c612f352e302028636f6d70617469626c653b20426c61636b6c6973742f25733b202b68747470733a2f2f6769746875622e636f6d2f7665726c696875622f707974686f6e2f747265652f6d61737465722f626c61636b6c6973742f29", None],
 	"botdesc": "3c426c61636b6c69737420563a25732c4d3a412c483a302f302f312c533a303e",
 	"datadir": os.path.join (vh.basedir, "blackdata"),
 	"timersec": 60,
@@ -974,6 +976,13 @@ def bl_chatdata (nick, data, rem = False):
 	if code == "L1" or code == "P1":
 		return 1
 
+	bl_stat ["ledokol"] = False # check ledokol status
+
+	try:
+		vh.ScriptCommand ("are_you_there", "ledokol")
+	except:
+		pass
+
 	intaddr = bl_addrtoint (addr)
 	addrpos = intaddr >> 24
 	size = 0
@@ -981,15 +990,27 @@ def bl_chatdata (nick, data, rem = False):
 	for id, item in enumerate (bl_prox [addrpos]):
 		if addr == item [0]:
 			if item [3] < 2:
-				# todo
-					# we have a bug here
-					# user is able to send messages after the first one while he is being checked
-					# a check usually takes a few seconds
-					# this function is now deprecated and will be removed in future due to availability in ledokol
-					# use ledokol instead
-
 				if not nick in item [1]:
 					bl_prox [addrpos][id][1].append (nick)
+
+				if bl_conf ["action_proxy"][0] == 2: # add message to queue if enabled
+					if not rem and data [:5] == "$To: ": # pm
+						pars = re.findall ("^\$To\: ([^ ]+) From\: [^ ]+ \$<[^ ]+> .*$", data)
+
+						if pars and pars [0]:
+							vh.SendDataToUser ("$To: %s From: %s $<%s> %s|" % (nick, pars [0], vh.botname, bl_getlang ("Your message will be delayed for proxy lookup of your IP address.")), nick)
+
+					else: # mc
+						bl_reply (nick, bl_getlang ("Your message will be delayed for proxy lookup of your IP address."))
+
+					if rem: # remove last main chat history message in ledokol, dont ask why
+						try:
+							vh.ScriptCommand ("remove_history_line", data)
+						except:
+							pass
+
+					bl_prox [addrpos][id][2].append (data)
+					return 0
 
 			elif item [3] == 2: # drop user mode
 				res = bl_excheck (addr, intaddr, code, None, None, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0], nick, True, True)
@@ -1075,13 +1096,6 @@ def bl_chatdata (nick, data, rem = False):
 
 			else: # mc
 				bl_reply (nick, bl_getlang ("Your message will be delayed for proxy lookup of your IP address."))
-
-			bl_stat ["ledokol"] = False # check ledokol status
-
-			try:
-				vh.ScriptCommand ("are_you_there", "ledokol")
-			except:
-				pass
 
 			if rem: # remove last main chat history message in ledokol, dont ask why
 				try:
