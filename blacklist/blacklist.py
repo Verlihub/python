@@ -1126,59 +1126,71 @@ def OnScriptCommand (name, data, plug, file):
 def OnNewConn (addr):
 	global bl_conf, bl_stat, bl_item, bl_myli, bl_asn, bl_prox
 	bl_stat ["connect"] += 1
-	code = vh.GetIPCC (addr)
+	code = None
 
-	if not code:
-		code = "??"
+	if bl_conf ["code_block"][0]:
+		code = vh.GetIPCC (addr) or "??"
 
-	if bl_conf ["code_block"][0] and str ().join ([" ", code, " "]) in str ().join ([" ", bl_conf ["code_block"][0], " "]):
-		if bl_waitfeed (addr):
-			bl_notify (bl_getlang ("Blocking blacklisted connection from %s.%s: %s") % (addr, code, bl_getlang ("Blocked country: %s=%s") % (code, vh.GetIPCN (addr) or "??")))
+		if str ().join ([" ", code, " "]) in str ().join ([" ", bl_conf ["code_block"][0], " "]):
+			if bl_waitfeed (addr):
+				bl_notify (bl_getlang ("Blocking blacklisted connection from %s.%s: %s") % (addr, code, bl_getlang ("Blocked country: %s=%s") % (code, vh.GetIPCN (addr) or "??")))
 
-		bl_stat ["block"] += 1
-		return 0
+			bl_stat ["block"] += 1
+			return 0
 
 	asn, asnum, urlasn = None, None, None
 
-	try: # get asn
-		asn = vh.GetIPASN (addr)
+	if bl_conf ["asn_block"][0]: # get asn
+		try:
+			asn = vh.GetIPASN (addr)
 
-		if asn:
-			urlasn = asn
-			match = re.match ("^AS\d+", asn)
+			if asn:
+				urlasn = asn
+				match = re.match ("^AS\d+", asn)
 
-			if match:
-				urlasn = "https://ipinfo.io/" + urlasn
-				asnum = match.group (0)
+				if match:
+					urlasn = "https://ipinfo.io/" + urlasn
+					asnum = match.group (0)
 
-				if bl_conf ["asn_block"][0] and str ().join ([" ", asnum, " "]) in str ().join ([" ", bl_conf ["asn_block"][0], " "]):
-					if bl_waitfeed (addr):
-						bl_notify (bl_getlang ("Blocking blacklisted connection from %s.%s: %s") % (addr, code, bl_getlang ("Blocked ASN: %s") % urlasn))
+					if str ().join ([" ", asnum, " "]) in str ().join ([" ", bl_conf ["asn_block"][0], " "]):
+						if bl_waitfeed (addr):
+							if not code:
+								code = vh.GetIPCC (addr) or "??"
 
-					bl_stat ["block"] += 1
-					return 0
+							bl_notify (bl_getlang ("Blocking blacklisted connection from %s.%s: %s") % (addr, code, bl_getlang ("Blocked ASN: %s") % urlasn))
 
-	except: # not supported
-		pass
+						bl_stat ["block"] += 1
+						return 0
+
+		except: # not supported
+			pass
 
 	intaddr = bl_addrtoint (addr)
 	addrpos = intaddr >> 24
 
-	if code != "L1" and code != "P1" and bl_conf ["prox_lookup"][0] and time.time () - vh.starttime >= bl_conf ["prox_start"][0] * 60: # check proxy
-		for id, item in enumerate (bl_prox [addrpos]):
-			if addr == item [0]:
-				if item [3] == 2 and not bl_excheck (addr, intaddr, code, asnum, urlasn, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0]): # drop user mode
-					return 0
+	if bl_conf ["prox_lookup"][0]: # check proxy
+		if not code:
+			code = vh.GetIPCC (addr) or "??"
 
-				break # dont return
+		if code != "L1" and code != "P1" and time.time () - vh.starttime >= bl_conf ["prox_start"][0] * 60:
+			for id, item in enumerate (bl_prox [addrpos]):
+				if addr == item [0]:
+					if item [3] == 2 and not bl_excheck (addr, intaddr, code, asnum, urlasn, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0]): # drop user mode
+						return 0
+
+					break # dont return
 
 	for item in bl_myli: # my list first
 		if not item [3] and intaddr >= item [0] and intaddr <= item [1]:
+			if not code: # will be set only once
+				code = vh.GetIPCC (addr) or "??"
+
 			if not bl_conf ["action_mylist"][0]: # notification only
 				if bl_waitfeed (addr):
 					bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, item [2]))
 
 				bl_stat ["notify"] += 1
+
 			elif not bl_excheck (addr, intaddr, code, asnum, urlasn, item [2], bl_conf ["except_mylist"][0]):
 				return 0
 
@@ -1186,32 +1198,44 @@ def OnNewConn (addr):
 
 	for item in bl_item [addrpos]:
 		if intaddr >= item [0] and intaddr <= item [1]:
+			if not code: # will be set only once
+				code = vh.GetIPCC (addr) or "??"
+
 			if not item [3]: # notification only
 				if bl_waitfeed (addr):
 					bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, item [2]))
 
 				bl_stat ["notify"] += 1
+
 			elif not bl_excheck (addr, intaddr, code, asnum, urlasn, item [2], item [4]):
 				return 0
 
 			# dont break or return
 
-	if bl_asn and asn: # asn check
-		lowasn = asn.lower ()
+	if bl_asn: # asn check
+		if not asn:
+			asn = vh.GetIPASN (addr)
 
-		for item in bl_asn:
-			if not item [1] and item [0].lower () in lowasn:
-				if not bl_conf ["action_asnlist"][0]: # notification only
-					if bl_conf ["asn_nofeed"][0] and asnum and str ().join ([" ", asnum, " "]) in str ().join ([" ", bl_conf ["asn_nofeed"][0], " "]): # skip notification
-						pass
-					elif bl_waitfeed (addr):
-						bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, urlasn))
+		if asn:
+			lowasn = asn.lower ()
 
-					bl_stat ["notify"] += 1
-				elif not bl_excheck (addr, intaddr, code, asnum, urlasn, urlasn, bl_conf ["except_asnlist"][0]):
-					return 0
+			for item in bl_asn:
+				if not item [1] and item [0].lower () in lowasn:
+					if not code: # will be set only once
+						code = vh.GetIPCC (addr) or "??"
 
-				# dont break or return
+					if not bl_conf ["action_asnlist"][0]: # notification only
+						if bl_conf ["asn_nofeed"][0] and asnum and str ().join ([" ", asnum, " "]) in str ().join ([" ", bl_conf ["asn_nofeed"][0], " "]): # skip notification
+							pass
+						elif bl_waitfeed (addr):
+							bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, urlasn))
+
+						bl_stat ["notify"] += 1
+
+					elif not bl_excheck (addr, intaddr, code, asnum, urlasn, urlasn, bl_conf ["except_asnlist"][0]):
+						return 0
+
+					# dont break or return
 
 	return 1
 
