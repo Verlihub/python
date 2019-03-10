@@ -1,7 +1,7 @@
 # coding: latin-1
 
 # Blacklist 1.2.4.1
-# © 2010-2018 RoLex
+# © 2010-2019 RoLex
 # Thanks to Frog
 
 # Changelog:
@@ -1129,7 +1129,7 @@ def OnNewConn (addr):
 	code = None
 
 	if bl_conf ["code_block"][0]:
-		code = vh.GetIPCC (addr) or "??"
+		code = vh.GetIPCC (addr) or "??" # if not code
 
 		if str ().join ([" ", code, " "]) in str ().join ([" ", bl_conf ["code_block"][0], " "]):
 			if bl_waitfeed (addr):
@@ -1142,7 +1142,7 @@ def OnNewConn (addr):
 
 	if bl_conf ["asn_block"][0]: # get asn
 		try:
-			asn = vh.GetIPASN (addr)
+			asn = vh.GetIPASN (addr) # if not asn
 
 			if asn:
 				urlasn = asn
@@ -1154,10 +1154,7 @@ def OnNewConn (addr):
 
 					if str ().join ([" ", asnum, " "]) in str ().join ([" ", bl_conf ["asn_block"][0], " "]):
 						if bl_waitfeed (addr):
-							if not code:
-								code = vh.GetIPCC (addr) or "??"
-
-							bl_notify (bl_getlang ("Blocking blacklisted connection from %s.%s: %s") % (addr, code, bl_getlang ("Blocked ASN: %s") % urlasn))
+							bl_notify (bl_getlang ("Blocking blacklisted connection from %s.%s: %s") % (addr, vh.GetIPCC (addr) or "??", bl_getlang ("Blocked ASN: %s") % urlasn))
 
 						bl_stat ["block"] += 1
 						return 0

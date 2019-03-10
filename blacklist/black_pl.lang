@@ -1,6 +1,6 @@
 # Language: pl_PL
 # Charset: CP1250
-# Version: 1.2.3
+# Version: 1.2.4
 # Author: Zorro
 # Email: zbyszekslyz@hostpl.eu
 
@@ -100,11 +100,6 @@ list|
 type|
 update|
 None|
-Set translation string|
-Show current translation|
-Translation list|
-Updated translation with ID: %s|
-Parameter count mismatch in translation with ID: %s|
 File is not compressed with ZIP|
 Force load of existing list|
 Item is disabled: %s|
@@ -236,3 +231,23 @@ Space separated AS numbers to except|
 Blocked ASN: %s|
 Excepted ASN: %s|
 Space separated nicks to skip proxy lookup|
+Translation: %s|
+Update script to latest version|
+Unable to download version file: %s|
+Invalid version number|
+You are already running latest version: %s|
+New version is available for download: %s|
+Unable to download script file: %s|
+Invalid file content|
+Unable to update script file: %s|
+Failed to write temporary file|
+Unable to download translation file: %s|
+Unable to update translation file: %s|
+Finish update with following command: %s|
+Failed to move file|
+Space separated AS numbers to skip notifying|
+You're not allowed to chat due to public proxy detection of your IP address.|
+Your message will be delayed for proxy lookup of your IP address.|
+Blocking private main chat message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|
+Blocking private message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|
+Blocking main chat message from %s with IP %s.%s detected as public proxy: %s|

@@ -1,7 +1,7 @@
 # Language: nl_NL
 # Charset: CP1252
-# Version: 1.2.3
-# Author: Modswat
+# Version: 1.2.4
+# Author: Marcel
 # Email: future_dance@hotmail.com
 
 Blacklist %s startup|Blacklist %s begin
@@ -100,11 +100,6 @@ list|lijst
 type|type
 update|update
 None|Geen
-Set translation string|Set vertaling koord
-Show current translation|Toon huidige vertaling
-Translation list|Vertaling lijst
-Updated translation with ID: %s|Bijgewerkt vertaling met ID
-Parameter count mismatch in translation with ID: %s|Parameter telling mismatch in vertaling met ID
 File is not compressed with ZIP|Bestand wordt niet gecomprimeerd met ZIP
 Force load of existing list|Geforceerd laden van de bestaande lijst
 Item is disabled: %s|Item is uitgeschakeld:%s
@@ -235,4 +230,24 @@ Space separated AS numbers to block|Ruimte gescheiden AS-nummers om te blokkeren
 Space separated AS numbers to except|Ruimte gescheiden AS-nummers te accepteren.
 Blocked ASN: %s|Geblokkeerde ASN: %s
 Excepted ASN: %s|Uitgezonderde ASN: %s
-Space separated nicks to skip proxy lookup|
+Space separated nicks to skip proxy lookup|Door spaties gescheiden nicks om proxy-lookup over te slaan
+Translation: %s|Vertaling: %s
+Update script to latest version|Update script naar laatste versie
+Unable to download version file: %s|Kan versiebestand niet downloaden
+Invalid version number|Versie nummer bestaat niet
+You are already running latest version: %s|U gebruikt de nieuwste versie al: %s
+New version is available for download: %s|Nieuwe versie is beschikbaar om te downloaden: %s
+Unable to download script file: %s|Kan script niet downloaden: %s
+Invalid file content|Bestand bestaat niet
+Unable to update script file: %s|Kan script iet updaten: 1%s
+Failed to write temporary file|Kan tijdelijk bestand niet schrijven
+Unable to download translation file: %s|Kan vertaalbestand niet downloaden: %s
+Unable to update translation file: %s|Kan vertaalbestand niet bijwerken: %s
+Finish update with following command: %s|Voltooi update met de volgende opdracht: %s
+Failed to move file|Bestand verplaatsen mislukt
+Space separated AS numbers to skip notifying|Ruimte gescheiden AS-nummers te accepteren. om het melden over te slaan.
+You're not allowed to chat due to public proxy detection of your IP address.|U mag niet chatten vanwege openbare proxydetectie van uw IP-adres.
+Your message will be delayed for proxy lookup of your IP address.|Uw bericht wordt vertraagd voor proxy-opzoeken van uw IP-adres.
+Blocking private main chat message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|Blokkering privé hoofdchatbericht van %s met IP%s.%sgedetecteerd als openbare proxy voor%smet IP%s.%s:%s
+Blocking private message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|Blokering prive berichten van %s met IP %s.%s gedetecteerd als openbare proxy voor %smet IP %s.%s:%s
+Blocking main chat message from %s with IP %s.%s detected as public proxy: %s|Geblokeerd mainchat bericht van%s met IP %s.%sgedecteert als public proxy.

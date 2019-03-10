@@ -1,7 +1,7 @@
 # Language: fr_FR
 # Charset: CP1252
-# Version: 1.2.3
-# Author: @tlantide
+# Version: 1.2.4
+# Author: @atlantide
 # Email: chatonhubfrance@gmail.com
 
 Blacklist %s startup|Blacklist %s commencez
@@ -100,11 +100,6 @@ list|liste
 type|type
 update|update
 None|Aucun
-Set translation string|Définir la chaîne de traduction
-Show current translation|Afficher la traduction en cours
-Translation list|Liste de traduction
-Updated translation with ID: %s|Traduction mise à jour avec ID: %s
-Parameter count mismatch in translation with ID: %s|Décalage du nombre de paramètres en traduction avec ID: %s
 File is not compressed with ZIP|Le fichier n'est pas compressé avec ZIP
 Force load of existing list|Forcer le chargement de la liste existante
 Item is disabled: %s|L'article est désactivé: %s
@@ -235,4 +230,24 @@ Space separated AS numbers to block|Espace séparé des numéros AS pour bloquer
 Space separated AS numbers to except|Espace séparé des numéros AS à l'exception
 Blocked ASN: %s|Bloqué ASN: %s
 Excepted ASN: %s|Excepté ASN: %s
-Space separated nicks to skip proxy lookup|
+Space separated nicks to skip proxy lookup|Espace séparé des pseudos pour ignorer la recherche de proxy
+Translation: %s|Traduction: %s
+Update script to latest version|Mettre à jour le script vers la dernière version
+Unable to download version file: %s|Impossible de télécharger le fichier de version:%s
+Invalid version number|Numéro de version incorrect
+You are already running latest version: %s|Vous utilisez déjà la dernière version:%s
+New version is available for download: %s|Nouvelle version est disponible pour téléchargement:%s
+Unable to download script file: %s|Impossible de télécharger le fichier de script:%s
+Invalid file content|Le contenu du fichier n'est pas valide
+Unable to update script file: %s|Impossible de mettre à jour le fichier de script:%s
+Failed to write temporary file|Échec de l'écriture du fichier temporaire
+Unable to download translation file: %s|Impossible de télécharger le fichier de traduction:%s
+Unable to update translation file: %s|Impossible de mettre à jour le fichier de traduction:%s
+Finish update with following command: %s|Terminer la mise à jour avec la commande suivante:%s
+Failed to move file|Échec du déplacement du fichier
+Space separated AS numbers to skip notifying|Espace séparé des numéros AS pour ignorer la notification
+You're not allowed to chat due to public proxy detection of your IP address.|Vous n'êtes pas autorisé à discuter en raison de la détection par proxy de votre adresse IP.
+Your message will be delayed for proxy lookup of your IP address.|Votre message sera retardé pour la recherche de proxy de votre adresse IP.
+Blocking private main chat message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|Blocage du message de discussion principal privé avec %s IP %s. détecté en tant que proxy public %s avec IP%s.%s: %s
+Blocking private message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|Blocage du message privé avec %s IP %s.  %sdétecté en tant que proxy public avec %s IP %s.%s:%s
+Blocking main chat message from %s with IP %s.%s detected as public proxy: %s|Blocage du message de discussion principal avec %s IP %s. %s détecté comme proxy public: %s

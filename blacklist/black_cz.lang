@@ -1,6 +1,6 @@
 # Language: cs_CZ
 # Charset: CP1250
-# Version: 1.2.3
+# Version: 1.2.4
 # Author: Uhlik
 # Email: pjanos.uk@gmail.com
 
@@ -100,11 +100,6 @@ list|seznam
 type|typ
 update|aktualizace
 None|Nic
-Set translation string|Nastavit preklad
-Show current translation|Zobrazit soucasny preklad
-Translation list|Seznam prekladu
-Updated translation with ID: %s|Aktualizovan preklad s ID: %s
-Parameter count mismatch in translation with ID: %s|Pocet parametru nesouhlasi v prekladu s ID: %s
 File is not compressed with ZIP|Soubor neni komprimovan s ZIP
 Force load of existing list|Vynutit nahrani existujiciho seznamu
 Item is disabled: %s|
@@ -236,3 +231,23 @@ Space separated AS numbers to except|
 Blocked ASN: %s|
 Excepted ASN: %s|
 Space separated nicks to skip proxy lookup|
+Translation: %s|
+Update script to latest version|
+Unable to download version file: %s|
+Invalid version number|
+You are already running latest version: %s|
+New version is available for download: %s|
+Unable to download script file: %s|
+Invalid file content|
+Unable to update script file: %s|
+Failed to write temporary file|
+Unable to download translation file: %s|
+Unable to update translation file: %s|
+Finish update with following command: %s|
+Failed to move file|
+Space separated AS numbers to skip notifying|
+You're not allowed to chat due to public proxy detection of your IP address.|
+Your message will be delayed for proxy lookup of your IP address.|
+Blocking private main chat message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|
+Blocking private message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|
+Blocking main chat message from %s with IP %s.%s detected as public proxy: %s|
