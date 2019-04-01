@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.4.1
+# Blacklist 1.2.4.2
 # © 2010-2019 RoLex
 # Thanks to Frog
 
@@ -90,12 +90,13 @@
 # 1.2.4.0 - Added block chat mode with delayed chat messages to public proxy detection
 # 1.2.4.1 - Added Mozilla compatible user agent for HTTP requests
 # 1.2.4.1 - Fixed public proxy lookup message queue but it is recommended to use Ledokol instead for best compatibility
+# 1.2.4.2 - Added redirection of blocked connections, requires Verlihub 1.2.0.1
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.4.1", # todo: dont forget to update
+	"version": "1.2.4.2", # todo: dont forget to update
 	"verfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b6c6973742e766572",
 	"pyfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b6c6973742e7079",
 	"langfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b5f25732e6c616e67",
@@ -105,6 +106,7 @@ bl_defs = {
 	"referer": "68747470733a2f2f6769746875622e636f6d2f7665726c696875622f707974686f6e2f",
 	"useragent": ["4d6f7a696c6c612f352e302028636f6d70617469626c653b20426c61636b6c6973742f25733b202b68747470733a2f2f6769746875622e636f6d2f7665726c696875622f707974686f6e2f747265652f6d61737465722f626c61636b6c6973742f29", None],
 	"botdesc": "3c426c61636b6c69737420563a25732c4d3a412c483a302f302f312c533a303e",
+	"protmove": "24466f7263654d6f7665202573",
 	"datadir": os.path.join (vh.basedir, "blackdata"),
 	"timersec": 60,
 	"quotesec": 60 * 60 * 24,
@@ -147,7 +149,12 @@ bl_conf = {
 	"except_asnlist": [1, "int", 0, 1, "Exception usage on ASN list item detections"],
 	"action_extry": [0, "int", 0, 1, "Run exception lookup on notification actions"],
 	"extry_getasn": [0, "int", 0, 1, "Enable GeoIP ASN information on exception lookup"],
-	"lang_pref": ["", "str", 0, 2, "Translation file language prefix to use"]
+	"lang_pref": ["", "str", 0, 2, "Translation file language prefix to use"],
+	"redir_code": ["", "str", 0, 100, "Redirect address on country code block"],
+	"redir_asn": ["", "str", 0, 100, "Redirect address on AS number block"],
+	"redir_prox": ["", "str", 0, 100, "Redirect address on public proxy block"],
+	"redir_my": ["", "str", 0, 100, "Redirect address on my list block"],
+	"redir_list": ["", "str", 0, 100, "Redirect address on list block"]
 }
 
 bl_stat = {
@@ -165,14 +172,14 @@ bl_stat = {
 bl_lang = {}
 
 bl_list = [
-	#["http://list.iblocklist.com/?list=ijfqtofzixtwayqovmxn&fileformat=p2p&archiveformat=gz", "gzip-p2p", "TBG - Primary", 0, 0, 1, 1, 0],
-	#["http://list.iblocklist.com/?list=xoebmbyexwuiogmbyprb&fileformat=p2p&archiveformat=gz", "gzip-p2p", "Bluetack - Proxy", 0, 0, 1, 1, 0],
-	#["http://te-home.net/blacklist.php?do=load&list=AP2P", "p2p", "TE - AP2P", 0, 0, 1, 1, 0],
-	#["http://te-home.net/blacklist.php?do=load&list=Proxy", "p2p", "TE - Proxy", 0, 0, 1, 1, 0],
-	#["http://te-home.net/blacklist.php?do=load&list=SOCKS", "p2p", "TE - SOCKS", 0, 0, 1, 1, 0],
-	#["http://ledo.feardc.net/mirror/torexit.list", "single", "Tor exit", 60, 0, 1, 1, 0],
-	#["http://ledo.feardc.net/mirror/torserver.list", "single", "Tor server", 60, 0, 1, 1, 0],
-	#["http://stopforumspam.com/downloads/listed_ip_7.gz", "gzip-single", "Stop forum spam", 1440, 0, 1, 1, 0]
+	#["http://list.iblocklist.com/?list=ijfqtofzixtwayqovmxn&fileformat=p2p&archiveformat=gz", "gzip-p2p", "TBG - Primary", 0, 0, 1, 1, 0, 0],
+	#["http://list.iblocklist.com/?list=xoebmbyexwuiogmbyprb&fileformat=p2p&archiveformat=gz", "gzip-p2p", "Bluetack - Proxy", 0, 0, 1, 1, 1, 0],
+	#["http://te-home.net/blacklist.php?do=load&list=AP2P", "p2p", "TE - AP2P", 0, 0, 1, 1, 0, 0],
+	#["http://te-home.net/blacklist.php?do=load&list=Proxy", "p2p", "TE - Proxy", 0, 0, 1, 1, 1, 0],
+	#["http://te-home.net/blacklist.php?do=load&list=SOCKS", "p2p", "TE - SOCKS", 0, 0, 1, 1, 1, 0],
+	#["http://ledo.feardc.net/mirror/torexit.list", "single", "Tor exit", 60, 0, 1, 1, 1, 0],
+	#["http://ledo.feardc.net/mirror/torserver.list", "single", "Tor server", 60, 0, 1, 1, 1, 0],
+	#["http://stopforumspam.com/downloads/listed_ip_7.gz", "gzip-single", "Stop forum spam", 1440, 0, 1, 1, 1, 0]
 ]
 
 bl_item = [[] for pos in xrange (256)]
@@ -200,7 +207,8 @@ def bl_main ():
 			"`update` smallint(4) unsigned not null default 0,"\
 			"`off` tinyint(1) unsigned not null default 0,"\
 			"`action` tinyint(1) unsigned not null default 1,"\
-			"`except` tinyint(1) unsigned not null default 1"\
+			"`except` tinyint(1) unsigned not null default 1,"\
+			"`redirect` tinyint(1) unsigned not null default 0"\
 		") engine = myisam default character set utf8 collate utf8_unicode_ci"
 	)
 
@@ -235,6 +243,7 @@ def bl_main ():
 	vh.SQL ("alter table `py_bl_list` add column `off` tinyint(1) unsigned not null default 0 after `update`")
 	vh.SQL ("alter table `py_bl_list` add column `action` tinyint(1) unsigned not null default 1 after `off`")
 	vh.SQL ("alter table `py_bl_list` add column `except` tinyint(1) unsigned not null default 1 after `action`")
+	vh.SQL ("alter table `py_bl_list` add column `redirect` tinyint(1) unsigned not null default 0 after `except`")
 	vh.SQL ("alter table `py_bl_myli` add column `off` tinyint(1) unsigned not null default 0 after `title`")
 	vh.SQL ("alter table `py_bl_exli` add column `off` tinyint(1) unsigned not null default 0 after `title`")
 
@@ -252,7 +261,7 @@ def bl_main ():
 
 	if sql and rows:
 		for item in rows:
-			bl_list.append ([item [0], item [1], item [2], int (item [3]), int (item [4]), int (item [5]), int (item [6]), 0])
+			bl_list.append ([item [0], item [1], item [2], int (item [3]), int (item [4]), int (item [5]), int (item [6]), int (item [7]), 0])
 
 	if bl_conf ["nick_bot"][0]:
 		bl_addbot (bl_conf ["nick_bot"][0])
@@ -304,7 +313,7 @@ def bl_main ():
 
 	bl_notify (out)
 
-def bl_import (list, type, title, action, exuse, update = False): # gzip-p2p, gzip-emule, gzip-range, gzip-single, zip-p2p, zip-emule, zip-range, zip-single, p2p, emule, range, single
+def bl_import (list, type, title, action, exuse, redir, update = False): # gzip-p2p, gzip-emule, gzip-range, gzip-single, zip-p2p, zip-emule, zip-range, zip-single, p2p, emule, range, single
 	global bl_defs, bl_conf, bl_item
 	file = None
 
@@ -401,7 +410,7 @@ def bl_import (list, type, title, action, exuse, update = False): # gzip-p2p, gz
 				hiaddr = loaddr
 
 			if name and loaddr and hiaddr and bl_validaddr (loaddr) and bl_validaddr (hiaddr):
-				temp.append ([bl_addrtoint (loaddr), bl_addrtoint (hiaddr), name.replace ("\\'", "'").replace ("\\\"", "\"").replace ("\\&", "&").replace ("\\\\", "\\"), action, exuse])
+				temp.append ([bl_addrtoint (loaddr), bl_addrtoint (hiaddr), name.replace ("\\'", "'").replace ("\\\"", "\"").replace ("\\&", "&").replace ("\\\\", "\\"), action, exuse, redir])
 
 	file.close ()
 
@@ -420,10 +429,10 @@ def bl_reload ():
 
 	for id, item in enumerate (bl_list):
 		if not item [4]:
-			out += " [*] %s: %s\r\n" % (item [2], bl_import (item [0], item [1], item [2], item [5], item [6]))
+			out += " [*] %s: %s\r\n" % (item [2], bl_import (item [0], item [1], item [2], item [5], item [6], item [7]))
 
 			if item [3]:
-				bl_list [id][7] = time.time ()
+				bl_list [id][8] = time.time ()
 
 	return out
 
@@ -1124,7 +1133,7 @@ def OnScriptCommand (name, data, plug, file):
 	return 1
 
 def OnNewConn (addr):
-	global bl_conf, bl_stat, bl_item, bl_myli, bl_asn, bl_prox
+	global bl_conf, bl_stat, bl_defs, bl_item, bl_myli, bl_asn, bl_prox
 	bl_stat ["connect"] += 1
 	code = None
 
@@ -1136,6 +1145,10 @@ def OnNewConn (addr):
 				bl_notify (bl_getlang ("Blocking blacklisted connection from %s.%s: %s") % (addr, code, bl_getlang ("Blocked country: %s=%s") % (code, vh.GetIPCN (addr) or "??")))
 
 			bl_stat ["block"] += 1
+
+			if bl_conf ["redir_code"][0] and bl_hubver (1, 2, 0, 1):
+				return (bl_defs ["protmove"].decode ("hex") % bl_conf ["redir_code"][0], 0)
+
 			return 0
 
 	asn, asnum, urlasn = None, None, None
@@ -1157,6 +1170,10 @@ def OnNewConn (addr):
 							bl_notify (bl_getlang ("Blocking blacklisted connection from %s.%s: %s") % (addr, vh.GetIPCC (addr) or "??", bl_getlang ("Blocked ASN: %s") % urlasn))
 
 						bl_stat ["block"] += 1
+
+						if bl_conf ["redir_asn"][0] and bl_hubver (1, 2, 0, 1):
+							return (bl_defs ["protmove"].decode ("hex") % bl_conf ["redir_asn"][0], 0)
+
 						return 0
 
 		except: # not supported
@@ -1173,6 +1190,9 @@ def OnNewConn (addr):
 			for id, item in enumerate (bl_prox [addrpos]):
 				if addr == item [0]:
 					if item [3] == 2 and not bl_excheck (addr, intaddr, code, asnum, urlasn, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0]): # drop user mode
+						if bl_conf ["redir_prox"][0] and bl_hubver (1, 2, 0, 1):
+							return (bl_defs ["protmove"].decode ("hex") % bl_conf ["redir_prox"][0], 0)
+
 						return 0
 
 					break # dont return
@@ -1189,6 +1209,9 @@ def OnNewConn (addr):
 				bl_stat ["notify"] += 1
 
 			elif not bl_excheck (addr, intaddr, code, asnum, urlasn, item [2], bl_conf ["except_mylist"][0]):
+				if bl_conf ["redir_my"][0] and bl_hubver (1, 2, 0, 1):
+					return (bl_defs ["protmove"].decode ("hex") % bl_conf ["redir_my"][0], 0)
+
 				return 0
 
 			# dont break or return
@@ -1205,6 +1228,9 @@ def OnNewConn (addr):
 				bl_stat ["notify"] += 1
 
 			elif not bl_excheck (addr, intaddr, code, asnum, urlasn, item [2], item [4]):
+				if item [5] and bl_conf ["redir_list"][0] and bl_hubver (1, 2, 0, 1):
+					return (bl_defs ["protmove"].decode ("hex") % bl_conf ["redir_list"][0], 0)
+
 				return 0
 
 			# dont break or return
@@ -1230,6 +1256,9 @@ def OnNewConn (addr):
 						bl_stat ["notify"] += 1
 
 					elif not bl_excheck (addr, intaddr, code, asnum, urlasn, urlasn, bl_conf ["except_asnlist"][0]):
+						if bl_conf ["redir_asn"][0] and bl_hubver (1, 2, 0, 1):
+							return (bl_defs ["protmove"].decode ("hex") % bl_conf ["redir_asn"][0], 0)
+
 						return 0
 
 					# dont break or return
@@ -1618,13 +1647,14 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
 
 					if not item [4]:
-						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else (bl_getlang ("%s minute") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [7] + (item [3] * 60)))) if item [3] == 1 else (bl_getlang ("%s minutes") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [7] + (item [3] * 60)))))
+						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else (bl_getlang ("%s minute") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [8] + (item [3] * 60)))) if item [3] == 1 else (bl_getlang ("%s minutes") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [8] + (item [3] * 60)))))
 					else:
 						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else bl_getlang ("%s minute") % item [3] if item [3] == 1 else bl_getlang ("%s minutes") % item [3])
 
 					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % (bl_getlang ("No") if not item [4] else bl_getlang ("Yes"))
 					out += ("\r\n [*] " + bl_getlang ("Action: %s")) % (bl_getlang ("Block") if item [5] else bl_getlang ("Notify"))
-					out += ("\r\n [*] " + bl_getlang ("Except: %s") + "\r\n") % (bl_getlang ("No") if not item [6] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Except: %s")) % (bl_getlang ("No") if not item [6] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Redirect: %s") + "\r\n") % (bl_getlang ("No") if not item [7] else bl_getlang ("Yes"))
 
 			bl_reply (user, out)
 			return 0
@@ -1673,18 +1703,19 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
 
 					if not item [4]:
-						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else (bl_getlang ("%s minute") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [7] + (item [3] * 60)))) if item [3] == 1 else (bl_getlang ("%s minutes") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [7] + (item [3] * 60)))))
+						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else (bl_getlang ("%s minute") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [8] + (item [3] * 60)))) if item [3] == 1 else (bl_getlang ("%s minutes") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [8] + (item [3] * 60)))))
 					else:
 						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else bl_getlang ("%s minute") % item [3] if item [3] == 1 else bl_getlang ("%s minutes") % item [3])
 
 					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % (bl_getlang ("No") if not item [4] else bl_getlang ("Yes"))
 					out += ("\r\n [*] " + bl_getlang ("Action: %s")) % (bl_getlang ("Block") if item [5] else bl_getlang ("Notify"))
-					out += ("\r\n [*] " + bl_getlang ("Except: %s") + "\r\n") % (bl_getlang ("No") if not item [6] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Except: %s")) % (bl_getlang ("No") if not item [6] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Redirect: %s") + "\r\n") % (bl_getlang ("No") if not item [7] else bl_getlang ("Yes"))
 
 					bl_reply (user, out)
 					return 0
 
-			bl_list.append ([pars [0][0], pars [0][1], pars [0][2], update, 0, 1, 1, time.time () if update else 0])
+			bl_list.append ([pars [0][0], pars [0][1], pars [0][2], update, 0, 1, 1, 0, time.time () if update else 0])
 			vh.SQL ("insert into `py_bl_list` (`list`, `type`, `title`, `update`) values ('%s', '%s', '%s', %s)" % (bl_repsql (pars [0][0]), bl_repsql (pars [0][1]), bl_repsql (pars [0][2]), str (update)))
 
 			out = bl_getlang ("Item added to list") + ":\r\n"
@@ -1696,7 +1727,8 @@ def OnOperatorCommand (user, data):
 			out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % bl_getlang ("No")
 			out += ("\r\n [*] " + bl_getlang ("Action: %s")) % bl_getlang ("Block")
 			out += ("\r\n [*] " + bl_getlang ("Except: %s")) % bl_getlang ("Yes")
-			out += ("\r\n [*] " + bl_getlang ("Status: %s") + "\r\n") % bl_import (pars [0][0], pars [0][1], pars [0][2], 1, 1)
+			out += ("\r\n [*] " + bl_getlang ("Redirect: %s")) % bl_getlang ("No")
+			out += ("\r\n [*] " + bl_getlang ("Status: %s") + "\r\n") % bl_import (pars [0][0], pars [0][1], pars [0][2], 1, 1, 0)
 
 			bl_reply (user, out)
 			return 0
@@ -1720,7 +1752,8 @@ def OnOperatorCommand (user, data):
 				out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else ((bl_getlang ("%s minute") % item [3]) if item [3] == 1 else (bl_getlang ("%s minutes") % item [3])))
 				out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % (bl_getlang ("No") if not item [4] else bl_getlang ("Yes"))
 				out += ("\r\n [*] " + bl_getlang ("Action: %s")) % (bl_getlang ("Block") if item [5] else bl_getlang ("Notify"))
-				out += ("\r\n [*] " + bl_getlang ("Except: %s") + "\r\n") % (bl_getlang ("No") if not item [6] else bl_getlang ("Yes"))
+				out += ("\r\n [*] " + bl_getlang ("Except: %s")) % (bl_getlang ("No") if not item [6] else bl_getlang ("Yes"))
+				out += ("\r\n [*] " + bl_getlang ("Redirect: %s") + "\r\n") % (bl_getlang ("No") if not item [7] else bl_getlang ("Yes"))
 
 				bl_reply (user, out)
 			else:
@@ -1739,7 +1772,7 @@ def OnOperatorCommand (user, data):
 				item = bl_list [id]
 
 				if not item [4]:
-					bl_list [id][4], bl_list [id][7] = 1, 0
+					bl_list [id][4], bl_list [id][8] = 1, 0
 					vh.SQL ("update `py_bl_list` set `off` = 1 where `list` = '%s'" % bl_repsql (item [0]))
 
 					out = bl_getlang ("Item now disabled") + ":\r\n"
@@ -1750,7 +1783,8 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else ((bl_getlang ("%s minute") % item [3]) if item [3] == 1 else (bl_getlang ("%s minutes") % item [3])))
 					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % bl_getlang ("Yes")
 					out += ("\r\n [*] " + bl_getlang ("Action: %s")) % (bl_getlang ("Block") if item [5] else bl_getlang ("Notify"))
-					out += ("\r\n [*] " + bl_getlang ("Except: %s") + "\r\n") % (bl_getlang ("No") if not item [6] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Except: %s")) % (bl_getlang ("No") if not item [6] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Redirect: %s") + "\r\n") % (bl_getlang ("No") if not item [7] else bl_getlang ("Yes"))
 
 					bl_reply (user, out)
 				else:
@@ -1758,7 +1792,7 @@ def OnOperatorCommand (user, data):
 					vh.SQL ("update `py_bl_list` set `off` = 0 where `list` = '%s'" % bl_repsql (item [0]))
 
 					if item [3]:
-						bl_list [id][7] = time.time ()
+						bl_list [id][8] = time.time ()
 
 					out = bl_getlang ("Item now enabled") + ":\r\n"
 					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
@@ -1769,7 +1803,8 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % bl_getlang ("No")
 					out += ("\r\n [*] " + bl_getlang ("Action: %s")) % (bl_getlang ("Block") if item [5] else bl_getlang ("Notify"))
 					out += ("\r\n [*] " + bl_getlang ("Except: %s")) % (bl_getlang ("No") if not item [6] else bl_getlang ("Yes"))
-					out += ("\r\n [*] " + bl_getlang ("Status: %s") + "\r\n") % bl_import (item [0], item [1], item [2], item [5], item [6])
+					out += ("\r\n [*] " + bl_getlang ("Redirect: %s")) % (bl_getlang ("No") if not item [7] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Status: %s") + "\r\n") % bl_import (item [0], item [1], item [2], item [5], item [6], item [7])
 
 					bl_reply (user, out)
 			else:
@@ -1798,13 +1833,14 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
 
 					if not item [4]:
-						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else (bl_getlang ("%s minute") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [7] + (item [3] * 60)))) if item [3] == 1 else (bl_getlang ("%s minutes") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [7] + (item [3] * 60)))))
+						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else (bl_getlang ("%s minute") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [8] + (item [3] * 60)))) if item [3] == 1 else (bl_getlang ("%s minutes") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [8] + (item [3] * 60)))))
 					else:
 						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else bl_getlang ("%s minute") % item [3] if item [3] == 1 else bl_getlang ("%s minutes") % item [3])
 
 					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % (bl_getlang ("No") if not item [4] else bl_getlang ("Yes"))
 					out += ("\r\n [*] " + bl_getlang ("Action: %s")) % bl_getlang ("Notify")
-					out += ("\r\n [*] " + bl_getlang ("Except: %s") + "\r\n") % (bl_getlang ("No") if not item [6] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Except: %s")) % (bl_getlang ("No") if not item [6] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Redirect: %s") + "\r\n") % (bl_getlang ("No") if not item [7] else bl_getlang ("Yes"))
 
 					bl_reply (user, out)
 				else:
@@ -1818,13 +1854,14 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
 
 					if not item [4]:
-						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else (bl_getlang ("%s minute") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [7] + (item [3] * 60)))) if item [3] == 1 else (bl_getlang ("%s minutes") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [7] + (item [3] * 60)))))
+						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else (bl_getlang ("%s minute") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [8] + (item [3] * 60)))) if item [3] == 1 else (bl_getlang ("%s minutes") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [8] + (item [3] * 60)))))
 					else:
 						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else bl_getlang ("%s minute") % item [3] if item [3] == 1 else bl_getlang ("%s minutes") % item [3])
 
 					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % (bl_getlang ("No") if not item [4] else bl_getlang ("Yes"))
 					out += ("\r\n [*] " + bl_getlang ("Action: %s")) % bl_getlang ("Block")
-					out += ("\r\n [*] " + bl_getlang ("Except: %s") + "\r\n") % (bl_getlang ("No") if not item [6] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Except: %s")) % (bl_getlang ("No") if not item [6] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Redirect: %s") + "\r\n") % (bl_getlang ("No") if not item [7] else bl_getlang ("Yes"))
 
 					bl_reply (user, out)
 			else:
@@ -1853,13 +1890,14 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
 
 					if not item [4]:
-						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else (bl_getlang ("%s minute") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [7] + (item [3] * 60)))) if item [3] == 1 else (bl_getlang ("%s minutes") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [7] + (item [3] * 60)))))
+						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else (bl_getlang ("%s minute") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [8] + (item [3] * 60)))) if item [3] == 1 else (bl_getlang ("%s minutes") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [8] + (item [3] * 60)))))
 					else:
 						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else bl_getlang ("%s minute") % item [3] if item [3] == 1 else bl_getlang ("%s minutes") % item [3])
 
 					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % (bl_getlang ("No") if not item [4] else bl_getlang ("Yes"))
 					out += ("\r\n [*] " + bl_getlang ("Action: %s")) % (bl_getlang ("Block") if item [5] else bl_getlang ("Notify"))
-					out += ("\r\n [*] " + bl_getlang ("Except: %s") + "\r\n") % bl_getlang ("No")
+					out += ("\r\n [*] " + bl_getlang ("Except: %s")) % bl_getlang ("No")
+					out += ("\r\n [*] " + bl_getlang ("Redirect: %s") + "\r\n") % (bl_getlang ("No") if not item [7] else bl_getlang ("Yes"))
 
 					bl_reply (user, out)
 				else:
@@ -1873,13 +1911,71 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
 
 					if not item [4]:
-						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else (bl_getlang ("%s minute") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [7] + (item [3] * 60)))) if item [3] == 1 else (bl_getlang ("%s minutes") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [7] + (item [3] * 60)))))
+						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else (bl_getlang ("%s minute") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [8] + (item [3] * 60)))) if item [3] == 1 else (bl_getlang ("%s minutes") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [8] + (item [3] * 60)))))
 					else:
 						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else bl_getlang ("%s minute") % item [3] if item [3] == 1 else bl_getlang ("%s minutes") % item [3])
 
 					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % (bl_getlang ("No") if not item [4] else bl_getlang ("Yes"))
 					out += ("\r\n [*] " + bl_getlang ("Action: %s")) % (bl_getlang ("Block") if item [5] else bl_getlang ("Notify"))
-					out += ("\r\n [*] " + bl_getlang ("Except: %s") + "\r\n") % bl_getlang ("Yes")
+					out += ("\r\n [*] " + bl_getlang ("Except: %s")) % bl_getlang ("Yes")
+					out += ("\r\n [*] " + bl_getlang ("Redirect: %s") + "\r\n") % (bl_getlang ("No") if not item [7] else bl_getlang ("Yes"))
+
+					bl_reply (user, out)
+			else:
+				bl_reply (user, bl_getlang ("List out of item with ID: %s") % str (id))
+
+			return 0
+
+		if data [4:11] == "listmov":
+			if data [12:].isdigit ():
+				id = int (data [12:])
+			else:
+				bl_reply (user, bl_getlang ("Missing command parameters: %s") % ("listmov <" + bl_getlang ("id") + ">"))
+				return 0
+
+			if id >= 0 and bl_list and len (bl_list) - 1 >= id:
+				item = bl_list [id]
+
+				if item [7]:
+					bl_list [id][7] = 0
+					vh.SQL ("update `py_bl_list` set `redirect` = 0 where `list` = '%s'" % bl_repsql (item [0]))
+
+					out = bl_getlang ("Item redirection now disabled") + ":\r\n"
+					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
+					out += ("\r\n [*] " + bl_getlang ("List: %s")) % item [0]
+					out += ("\r\n [*] " + bl_getlang ("Type: %s")) % item [1]
+					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
+
+					if not item [4]:
+						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else (bl_getlang ("%s minute") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [8] + (item [3] * 60)))) if item [3] == 1 else (bl_getlang ("%s minutes") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [8] + (item [3] * 60)))))
+					else:
+						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else bl_getlang ("%s minute") % item [3] if item [3] == 1 else bl_getlang ("%s minutes") % item [3])
+
+					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % (bl_getlang ("No") if not item [4] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Action: %s")) % (bl_getlang ("Block") if item [5] else bl_getlang ("Notify"))
+					out += ("\r\n [*] " + bl_getlang ("Except: %s")) % (bl_getlang ("No") if not item [6] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Redirect: %s") + "\r\n") % bl_getlang ("No")
+
+					bl_reply (user, out)
+				else:
+					bl_list [id][7] = 1
+					vh.SQL ("update `py_bl_list` set `redirect` = 1 where `list` = '%s'" % bl_repsql (item [0]))
+
+					out = bl_getlang ("Item redirection now enabled") + ":\r\n"
+					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
+					out += ("\r\n [*] " + bl_getlang ("List: %s")) % item [0]
+					out += ("\r\n [*] " + bl_getlang ("Type: %s")) % item [1]
+					out += ("\r\n [*] " + bl_getlang ("Title: %s")) % item [2]
+
+					if not item [4]:
+						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else (bl_getlang ("%s minute") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [8] + (item [3] * 60)))) if item [3] == 1 else (bl_getlang ("%s minutes") + " | %s") % (item [3], time.strftime ("%d/%m %H:%M", time.localtime (item [8] + (item [3] * 60)))))
+					else:
+						out += ("\r\n [*] " + bl_getlang ("Update: %s")) % (bl_getlang ("On load") if not item [3] else bl_getlang ("%s minute") % item [3] if item [3] == 1 else bl_getlang ("%s minutes") % item [3])
+
+					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % (bl_getlang ("No") if not item [4] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Action: %s")) % (bl_getlang ("Block") if item [5] else bl_getlang ("Notify"))
+					out += ("\r\n [*] " + bl_getlang ("Except: %s")) % (bl_getlang ("No") if not item [6] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Redirect: %s") + "\r\n") % bl_getlang ("Yes")
 
 					bl_reply (user, out)
 			else:
@@ -1899,7 +1995,7 @@ def OnOperatorCommand (user, data):
 
 				if not item [4]:
 					if item [3]:
-						bl_list [id][7] = time.time ()
+						bl_list [id][8] = time.time ()
 
 					out = bl_getlang ("Item load result") + ":\r\n"
 					out += ("\r\n [*] " + bl_getlang ("ID: %s")) % str (id)
@@ -1910,7 +2006,8 @@ def OnOperatorCommand (user, data):
 					out += ("\r\n [*] " + bl_getlang ("Disabled: %s")) % bl_getlang ("No")
 					out += ("\r\n [*] " + bl_getlang ("Action: %s")) % (bl_getlang ("Block") if item [5] else bl_getlang ("Notify"))
 					out += ("\r\n [*] " + bl_getlang ("Except: %s")) % (bl_getlang ("No") if not item [6] else bl_getlang ("Yes"))
-					out += ("\r\n [*] " + bl_getlang ("Status: %s") + "\r\n") % bl_import (item [0], item [1], item [2], item [5], item [6])
+					out += ("\r\n [*] " + bl_getlang ("Redirect: %s")) % (bl_getlang ("No") if not item [7] else bl_getlang ("Yes"))
+					out += ("\r\n [*] " + bl_getlang ("Status: %s") + "\r\n") % bl_import (item [0], item [1], item [2], item [5], item [6], item [7])
 
 					bl_reply (user, out)
 				else:
@@ -2304,7 +2401,7 @@ def OnOperatorCommand (user, data):
 
 						if intaddr >= item [0] and intaddr <= item [1]:
 							if prox [3] == 4:
-								bl_item [intaddr >> 24].append ([intaddr, intaddr, bl_getlang ("Public proxy"), bl_conf ["action_proxy"][0], bl_conf ["except_proxy"][0]]) # todo: also add to mysql table when we have one
+								bl_item [intaddr >> 24].append ([intaddr, intaddr, bl_getlang ("Public proxy"), bl_conf ["action_proxy"][0], bl_conf ["except_proxy"][0], len (bl_conf ["redir_prox"][0])]) # todo: also add to mysql table when we have one
 								bl_prox [pos].pop (pid)
 
 							stop = True
@@ -2487,6 +2584,7 @@ def OnOperatorCommand (user, data):
 		out += " listoff <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Disable or enable list") + "\r\n"
 		out += " listact <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Set list block action") + "\r\n"
 		out += " listex <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Set list exception usage") + "\r\n"
+		out += " listmov <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Set list redirection usage") + "\r\n"
 		out += " listget <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Force load of existing list") + "\r\n"
 		out += " listdel <" + bl_getlang ("id") + ">\t\t\t\t- " + bl_getlang ("Delete existing list") + "\r\n"
 		out += " listre\t\t\t\t\t- " + bl_getlang ("Reload all lists") + "\r\n\r\n"
@@ -2527,8 +2625,8 @@ def OnTimer (msec):
 		bl_feed = [item for item in bl_feed if now - item [1] < mins]
 
 		for id, item in enumerate (bl_list):
-			if not item [4] and item [3] and now - item [7] >= item [3] * 60:
-				bl_list [id][7], out = now, bl_import (item [0], item [1], item [2], item [5], item [6], True)
+			if not item [4] and item [3] and now - item [8] >= item [3] * 60:
+				bl_list [id][8], out = now, bl_import (item [0], item [1], item [2], item [5], item [6], item [7], True)
 
 				if bl_conf ["notify_update"][0]:
 					bl_notify ("%s: %s" % (item [2], out))
@@ -2621,7 +2719,7 @@ def OnTimer (msec):
 
 											bl_stat ["block"] += len (item [1])
 											bl_prox [pos][id][3] = 2
-											bl_item [intaddr >> 24].append ([intaddr, intaddr, bl_getlang ("Public proxy"), bl_conf ["action_proxy"][0], bl_conf ["except_proxy"][0]]) # todo: also add to mysql table when we have one
+											bl_item [intaddr >> 24].append ([intaddr, intaddr, bl_getlang ("Public proxy"), bl_conf ["action_proxy"][0], bl_conf ["except_proxy"][0], len (bl_conf ["redir_prox"][0])]) # todo: also add to mysql table when we have one
 
 										elif bl_conf ["action_proxy"][0] == 2: # block chat mode
 											bl_delaychat (item [2], True) # delayed messages
