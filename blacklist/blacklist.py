@@ -1,7 +1,7 @@
 # coding: latin-1
 
-# Blacklist 1.2.4.2
-# © 2010-2019 RoLex
+# Blacklist 1.2.4.3
+# © 2010-2020 RoLex
 # Thanks to Frog
 
 # Changelog:
@@ -91,12 +91,13 @@
 # 1.2.4.1 - Added Mozilla compatible user agent for HTTP requests
 # 1.2.4.1 - Fixed public proxy lookup message queue but it is recommended to use Ledokol instead for best compatibility
 # 1.2.4.2 - Added redirection of blocked connections, requires Verlihub 1.2.0.1
+# 1.2.4.3 - Removed predefined MySQL character set, collation and engine to use system defaults
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.4.2", # todo: dont forget to update
+	"version": "1.2.4.3", # todo: dont forget to update
 	"verfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b6c6973742e766572",
 	"pyfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b6c6973742e7079",
 	"langfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b5f25732e6c616e67",
@@ -194,52 +195,52 @@ def bl_main ():
 
 	vh.SQL (
 		"create table if not exists `py_bl_conf` ("\
-			"`name` varchar(255) collate utf8_unicode_ci not null primary key,"\
-			"`value` text collate utf8_unicode_ci not null"\
-		") engine = myisam default character set utf8 collate utf8_unicode_ci"
+			"`name` varchar(255) not null primary key,"\
+			"`value` text not null"\
+		")"
 	)
 
 	vh.SQL (
 		"create table if not exists `py_bl_list` ("\
-			"`list` varchar(255) collate utf8_unicode_ci not null primary key,"\
-			"`type` varchar(25) collate utf8_unicode_ci not null,"\
-			"`title` varchar(255) collate utf8_unicode_ci not null,"\
+			"`list` varchar(255) not null primary key,"\
+			"`type` varchar(25) not null,"\
+			"`title` varchar(255) not null,"\
 			"`update` smallint(4) unsigned not null default 0,"\
 			"`off` tinyint(1) unsigned not null default 0,"\
 			"`action` tinyint(1) unsigned not null default 1,"\
 			"`except` tinyint(1) unsigned not null default 1,"\
 			"`redirect` tinyint(1) unsigned not null default 0"\
-		") engine = myisam default character set utf8 collate utf8_unicode_ci"
+		")"
 	)
 
 	vh.SQL (
 		"create table if not exists `py_bl_myli` ("\
 			"`loaddr` int(10) unsigned not null,"\
 			"`hiaddr` int(10) unsigned not null,"\
-			"`title` varchar(255) collate utf8_unicode_ci null default null,"\
+			"`title` varchar(255) null default null,"\
 			"`off` tinyint(1) unsigned not null default 0,"\
 			"unique `addr_index` (`loaddr`, `hiaddr`)"\
-		") engine = myisam default character set utf8 collate utf8_unicode_ci"
+		")"
 	)
 
 	vh.SQL (
 		"create table if not exists `py_bl_asn` ("\
-			"`asn` varchar(255) collate utf8_unicode_ci not null primary key,"\
+			"`asn` varchar(255) not null primary key,"\
 			"`off` tinyint(1) unsigned not null default 0"\
-		") engine = myisam default character set utf8 collate utf8_unicode_ci"
+		")"
 	)
 
 	vh.SQL (
 		"create table if not exists `py_bl_exli` ("\
 			"`loaddr` int(10) unsigned not null,"\
 			"`hiaddr` int(10) unsigned not null,"\
-			"`title` varchar(255) collate utf8_unicode_ci null default null,"\
+			"`title` varchar(255) null default null,"\
 			"`off` tinyint(1) unsigned not null default 0,"\
 			"unique `addr_index` (`loaddr`, `hiaddr`)"\
-		") engine = myisam default character set utf8 collate utf8_unicode_ci"
+		")"
 	)
 
-	vh.SQL ("alter table `py_bl_conf` change column `value` `value` text collate utf8_unicode_ci not null")
+	vh.SQL ("alter table `py_bl_conf` change column `value` `value` text not null")
 	vh.SQL ("alter table `py_bl_list` add column `off` tinyint(1) unsigned not null default 0 after `update`")
 	vh.SQL ("alter table `py_bl_list` add column `action` tinyint(1) unsigned not null default 1 after `off`")
 	vh.SQL ("alter table `py_bl_list` add column `except` tinyint(1) unsigned not null default 1 after `action`")
