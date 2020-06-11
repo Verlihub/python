@@ -1,6 +1,6 @@
 # coding: latin-1
 
-# Blacklist 1.2.4.3
+# Blacklist 1.2.4.4
 # © 2010-2020 RoLex
 # Thanks to Frog
 
@@ -92,12 +92,13 @@
 # 1.2.4.1 - Fixed public proxy lookup message queue but it is recommended to use Ledokol instead for best compatibility
 # 1.2.4.2 - Added redirection of blocked connections, requires Verlihub 1.2.0.1
 # 1.2.4.3 - Removed predefined MySQL character set, collation and engine to use system defaults
+# 1.2.4.4 - Fixed ASN list notifications resulting in unknown data
 # -------
 
 import vh, re, urllib2, gzip, zipfile, StringIO, time, os, subprocess, socket, struct, json
 
 bl_defs = {
-	"version": "1.2.4.3", # todo: dont forget to update
+	"version": "1.2.4.4", # todo: dont forget to update
 	"verfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b6c6973742e766572",
 	"pyfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b6c6973742e7079",
 	"langfile": "687474703a2f2f6c65646f2e6665617264632e6e65742f707974686f6e2f626c61636b6c6973742f626c61636b5f25732e6c616e67",
@@ -1190,7 +1191,7 @@ def OnNewConn (addr):
 		if code != "L1" and code != "P1" and time.time () - vh.starttime >= bl_conf ["prox_start"][0] * 60:
 			for id, item in enumerate (bl_prox [addrpos]):
 				if addr == item [0]:
-					if item [3] == 2 and not bl_excheck (addr, intaddr, code, asnum, urlasn, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0]): # drop user mode
+					if item [3] == 2 and not bl_excheck (addr, intaddr, code, asnum, urlasn, bl_getlang ("Public proxy"), bl_conf ["except_proxy"][0]): # drop user mode, note: asn exception not supported
 						if bl_conf ["redir_prox"][0] and bl_hubver (1, 2, 0, 1):
 							return (bl_defs ["protmove"].decode ("hex") % bl_conf ["redir_prox"][0], 0)
 
@@ -1209,7 +1210,7 @@ def OnNewConn (addr):
 
 				bl_stat ["notify"] += 1
 
-			elif not bl_excheck (addr, intaddr, code, asnum, urlasn, item [2], bl_conf ["except_mylist"][0]):
+			elif not bl_excheck (addr, intaddr, code, asnum, urlasn, item [2], bl_conf ["except_mylist"][0]): # note: asn exception not supported
 				if bl_conf ["redir_my"][0] and bl_hubver (1, 2, 0, 1):
 					return (bl_defs ["protmove"].decode ("hex") % bl_conf ["redir_my"][0], 0)
 
@@ -1228,7 +1229,7 @@ def OnNewConn (addr):
 
 				bl_stat ["notify"] += 1
 
-			elif not bl_excheck (addr, intaddr, code, asnum, urlasn, item [2], item [4]):
+			elif not bl_excheck (addr, intaddr, code, asnum, urlasn, item [2], item [4]): # note: asn exception not supported
 				if item [5] and bl_conf ["redir_list"][0] and bl_hubver (1, 2, 0, 1):
 					return (bl_defs ["protmove"].decode ("hex") % bl_conf ["redir_list"][0], 0)
 
@@ -1241,28 +1242,34 @@ def OnNewConn (addr):
 			asn = vh.GetIPASN (addr)
 
 		if asn:
-			lowasn = asn.lower ()
+			urlasn = asn
+			match = re.match ("^AS\d+", asn)
 
-			for item in bl_asn:
-				if not item [1] and item [0].lower () in lowasn:
-					if not code: # will be set only once
-						code = vh.GetIPCC (addr) or "??"
+			if match:
+				urlasn = "https://ipinfo.io/" + urlasn
+				asnum = match.group (0)
+				lowasn = asn.lower ()
 
-					if not bl_conf ["action_asnlist"][0]: # notification only
-						if bl_conf ["asn_nofeed"][0] and asnum and str ().join ([" ", asnum, " "]) in str ().join ([" ", bl_conf ["asn_nofeed"][0], " "]): # skip notification
-							pass
-						elif bl_waitfeed (addr):
-							bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, urlasn))
+				for item in bl_asn:
+					if not item [1] and item [0].lower () in lowasn:
+						if not code: # will be set only once
+							code = vh.GetIPCC (addr) or "??"
 
-						bl_stat ["notify"] += 1
+						if not bl_conf ["action_asnlist"][0]: # notification only
+							if bl_conf ["asn_nofeed"][0] and asnum and str ().join ([" ", asnum, " "]) in str ().join ([" ", bl_conf ["asn_nofeed"][0], " "]): # skip notification
+								pass
+							elif bl_waitfeed (addr):
+								bl_notify (bl_getlang ("Notifying blacklisted connection from %s.%s: %s") % (addr, code, urlasn))
 
-					elif not bl_excheck (addr, intaddr, code, asnum, urlasn, urlasn, bl_conf ["except_asnlist"][0]):
-						if bl_conf ["redir_asn"][0] and bl_hubver (1, 2, 0, 1):
-							return (bl_defs ["protmove"].decode ("hex") % bl_conf ["redir_asn"][0], 0)
+							bl_stat ["notify"] += 1
 
-						return 0
+						elif not bl_excheck (addr, intaddr, code, asnum, urlasn, urlasn, bl_conf ["except_asnlist"][0]):
+							if bl_conf ["redir_asn"][0] and bl_hubver (1, 2, 0, 1):
+								return (bl_defs ["protmove"].decode ("hex") % bl_conf ["redir_asn"][0], 0)
 
-					# dont break or return
+							return 0
+
+						# dont break or return
 
 	return 1
 
