@@ -251,3 +251,12 @@ Your message will be delayed for proxy lookup of your IP address.|¬аше сообщение
 Blocking private main chat message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|Ѕлокировка личного сообщени€ в чат от %s с IP %s.%s обнаруженным как публичный прокси пользователю %s с IP %s.%s: %s
 Blocking private message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|Ѕлокировка личного сообщени€ от %s с IP %s.%s обнаруженным как публичный прокси пользователю %s с IP %s.%s: %s
 Blocking main chat message from %s with IP %s.%s detected as public proxy: %s|Ѕлокировка сообщени€ в чат от %s с IP %s.%s обнаруженным как публичный прокси: %s
+Redirect address on country code block|јдрес дл€ перенаправлени€ при блокировке по коду страны
+Redirect address on AS number block|јдрес дл€ перенаправлени€ при блокировке по AS номеру
+Redirect address on public proxy block|јдрес дл€ перенаправлени€ при блокировке публичного прокси
+Redirect address on my list block|јдрес дл€ перенаправлени€ при блокировке из моего списка
+Redirect address on list block|јдрес дл€ перенаправлени€ при блокировке из списков
+Redirect: %s|ѕеренаправление: %s
+Set list redirection usage|”становить использование перенаправлени€ дл€ списка
+Item redirection now disabled|ѕеренаправление дл€ списка отключено
+Item redirection now enabled|ѕеренаправление дл€ списка включено

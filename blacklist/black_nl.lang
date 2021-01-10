@@ -251,3 +251,12 @@ Your message will be delayed for proxy lookup of your IP address.|Uw bericht wor
 Blocking private main chat message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|Blokkering privé hoofdchatbericht van %s met IP%s.%sgedetecteerd als openbare proxy voor%smet IP%s.%s:%s
 Blocking private message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|Blokering prive berichten van %s met IP %s.%s gedetecteerd als openbare proxy voor %smet IP %s.%s:%s
 Blocking main chat message from %s with IP %s.%s detected as public proxy: %s|Geblokeerd mainchat bericht van%s met IP %s.%sgedecteert als public proxy.
+Redirect address on country code block|Redirect adres op land code blok
+Redirect address on AS number block|Redirect adres op AS nummer blok
+Redirect address on public proxy block|Redirect adres op publiek proxy blok
+Redirect address on my list block|Redirect adres op mijn lijst blok
+Redirect address on list block|Redirect adres op lijst blok
+Redirect: %s|Redirect: %s
+Set list redirection usage|Set lijst redirect gebruik
+Item redirection now disabled|Artikel redirect nu uitgeschakeld
+Item redirection now enabled|Artikel redirect ingeschakeld

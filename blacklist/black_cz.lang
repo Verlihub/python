@@ -251,3 +251,12 @@ Your message will be delayed for proxy lookup of your IP address.|
 Blocking private main chat message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|
 Blocking private message from %s with IP %s.%s detected as public proxy to %s with IP %s.%s: %s|
 Blocking main chat message from %s with IP %s.%s detected as public proxy: %s|
+Redirect address on country code block|
+Redirect address on AS number block|
+Redirect address on public proxy block|
+Redirect address on my list block|
+Redirect address on list block|
+Redirect: %s|
+Set list redirection usage|
+Item redirection now disabled|
+Item redirection now enabled|
